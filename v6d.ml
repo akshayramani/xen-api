@@ -1,3 +1,5 @@
+let _proprietary_code_marker = "Citrix proprietary code"
+
 module P = V6xmlrpc.V6process(Realv6)
 
 let _ =

@@ -1,3 +1,5 @@
+static const char* _proprietary_code_marker = "Citrix proprietary code";
+
 #include <stdio.h>
 #include <wchar.h>
 #include <caml/mlvalues.h>

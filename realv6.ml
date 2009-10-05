@@ -1,3 +1,5 @@
+let _proprietary_code_marker = "Citrix proprietary code"
+
 module D=Debug.Debugger(struct let name="v6api" end)
 open D
 open Stringext

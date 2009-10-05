@@ -1,3 +1,5 @@
+let _proprietary_code_marker = "Citrix proprietary code"
+
 module D=Debug.Debugger(struct let name="lpe" end)
 open D
 
