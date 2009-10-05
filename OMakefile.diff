@@ -1,0 +1,28 @@
+diff -r 100affc28419 ocaml/v6/OMakefile
+--- a/ocaml/v6/OMakefile	Mon Oct 05 14:39:41 2009 +0100
++++ b/ocaml/v6/OMakefile	Mon Oct 05 14:41:02 2009 +0100
+@@ -30,6 +30,24 @@
+ OCamlProgram(v6testd, $(V6FILES) v6testd)
+ OCamlProgram(v6d-reopen-logs, v6d_reopen_logs)
+ 
++# Proprietary license daemon #########################################################################
++OCAML_CLIBS = lpe_stubs
++LPE = /distfiles/lpe/227057
++OCAMLINCLUDES += \
++        $(LPE)/include \
++        $(LPE)/flexlm/include
++CFLAGS += -DPLATFORM_UNIX -DOS_LINUX -g
++
++INCLUDES += $(LPE)/include $(LPE)/flexlm/include
++
++OCAML_LINK_FLAGS += $(LPE)/lib/libLicHelper.a $(LPE)/lib/libMFLic.a $(LPE)/lib/libVDHelper.a $(LPE)/lib/libaphelper.a $(LPE)/lib/libProdLic.a $(LPE)/lib/libreglib.a $(LPE)/flexlm/lib/lm_new.o $(LPE)/flexlm/lib/liblmgr.a $(LPE)/flexlm/lib/libcrvs.a $(LPE)/flexlm/lib/libsb.a $(LPE)/flexlm/lib/libnoact.a -cclib "-lpthread -ldb -lm -lc"
++
++StaticCLibrary(lpe_stubs, lpe_stubs)
++OCamlLibraryClib(lpe, lpe, lpe_stubs)
++OCamlProgram(v6d, $(V6FILES) lpe realv6 v6d)
++V6D = v6d
++######################################################################################################
++
+ .PHONY: install
+ install: $(V6D)
+ 	mkdir -p $(DIST)/staging/opt/xensource/libexec
