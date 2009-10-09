@@ -87,9 +87,12 @@ let initialise address port edition =
 	| Some s ->
 		if s.edition = edition then begin
 			debug "already initialised with same edition; returning state";
-			let days_past = int_of_float ((Unix.time () -. s.timestamp) /. 3600. /. 24.) in
-			let days_to_expire = max ((Int32.to_int s.days_to_expire) - days_past) 0 in
-			s.licensed, Int32.of_int days_to_expire
+			if Int32.to_int s.days_to_expire > -1 then begin
+				let days_past = int_of_float ((Unix.time () -. s.timestamp) /. 3600. /. 24.) in
+				let days_to_expire = Int32.to_int s.days_to_expire - days_past in
+				s.licensed, Int32.of_int days_to_expire
+			end else
+				s.licensed, s.days_to_expire
 		end else begin
 			debug "already initialised, but with different edition; shutting down first";
 			shutdown ();
