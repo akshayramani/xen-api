@@ -27,5 +27,4 @@ do
   cp $V6/$i $API/ocaml/v6
 done
 cd $API
-patch -p1 < $V6/OMakefile.diff
 echo Done
