@@ -4,6 +4,7 @@ module D=Debug.Debugger(struct let name="lpe" end)
 open D
 
 let v6_cache_dir = "/var/xapi/lpe-cache"
+let last_alert = ref ""
 
 external initialise: string -> int -> string -> string -> string -> 
 	bool * bool * int * int = "initialise_c"
@@ -20,10 +21,19 @@ let monitor_callbacks () =
 		try
 			Unixext.really_read pin s 0 1;
 			begin match s with
-			| "u" -> debug "license server up"; ignore(V6alert.send_alert Api_messages.v6_server_up "")
-			| "d" -> debug "license server down"; ignore(V6alert.send_alert Api_messages.v6_server_down "")
-			| "e" -> debug "license expired"; ignore(V6alert.send_alert Api_messages.v6_license_expired "")
-			| x -> debug "unknown callback option '%s'" x
+			| "u" when !last_alert <> "u" ->
+				debug "license server up";
+				ignore(V6alert.send_alert Api_messages.v6_server_up "");
+				last_alert := "u"
+			| "d" when !last_alert <> "d" ->
+				debug "license server down";
+				ignore(V6alert.send_alert Api_messages.v6_server_down "");
+				last_alert := "d"
+			| "e" when !last_alert <> "e" ->
+				debug "license expired";
+				ignore(V6alert.send_alert Api_messages.v6_license_expired "");
+				last_alert := "e"
+			| x -> debug "unknown or redundant callback '%s'" x
 			end;
 			receive ()
 		with End_of_file ->
