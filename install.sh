@@ -22,7 +22,7 @@ if [ ! -d "$API" ]; then
   exit 1
 fi
 
-for i in lpe.ml lpe_stubs.c realv6.ml v6d.ml
+for i in lpe.ml lpe_stubs.c realv6.ml realv6.mli v6d.ml
 do
   cp $V6/$i $API/ocaml/v6
 done
