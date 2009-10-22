@@ -24,7 +24,7 @@ fi
 
 for i in lpe.ml lpe_stubs.c realv6.ml realv6.mli v6d.ml
 do
-  cp $V6/$i $API/ocaml/v6
+  cp $V6/$i $API/ocaml/license
 done
 cd $API
 echo Done
