@@ -8,6 +8,9 @@ val _proprietary_code_marker : string
 (** Citrix proprietary code *)
 
 val initialise : string -> int32 -> string -> string * int32
+(** Obtain a license *)
 val shutdown : unit -> bool
+(** Release the license *)
 val reopen_logs : unit -> bool
+(** Close and re-open the log file *)
 
