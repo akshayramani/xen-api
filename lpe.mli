@@ -3,6 +3,9 @@
 (** Citrix proprietary code *)
 val _proprietary_code_marker : string
 
+(** Location of the cache directory of the LPE *)
+val v6_cache_dir : string
+
 (** Initialise LPE and check out license *)
 external initialise :
   string -> int -> string -> string -> string -> bool * bool * int * int
