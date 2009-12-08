@@ -23,11 +23,11 @@ let monitor_callbacks () =
 			begin match s with
 			| "u" when !last_alert <> "u" ->
 				debug "license server up";
-				ignore(V6alert.send_alert Api_messages.v6_server_up "");
+				(* ignore(V6alert.send_alert Api_messages.v6_server_up ""); *)
 				last_alert := "u"
 			| "d" when !last_alert <> "d" ->
 				debug "license server down";
-				ignore(V6alert.send_alert Api_messages.v6_server_down "");
+				(* ignore(V6alert.send_alert Api_messages.v6_server_down ""); *)
 				last_alert := "d"
 			| "e" when !last_alert <> "e" ->
 				debug "license expired";
