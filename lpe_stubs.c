@@ -123,9 +123,9 @@ CAMLprim value initialise_c(value address, value port, value edition,
 		w_address,		// address of license server
 		d_port,			// port of license server
 		NULL,			// just use NULL
-		L"CXS",			// product name
-		L"CXS",			// product name
-		L"CXS",			// product name
+		L"CXSTP",			// product name
+		L"CXSTP",			// product name
+		L"CXSTP",			// product name
 		w_edition,		// component/edition (STD|ADV|ENT|PLT)
 		w_dbv,			// data-based version (DBV)
 		w_cache_dir,	// path to store cached data
