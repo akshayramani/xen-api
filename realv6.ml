@@ -45,7 +45,7 @@ let initialise address port edition =
 		(* The license profile is a special string needed by the GetLicense call of the LPE
 		 * It contains the edition and a unique identifier (see LPE API docs on wiki). *)
 		let identifier = String.sub (Uuid.to_string (Uuid.make_uuid ())) 0 13 in
-		let license_profile = "CXS_" ^ edition ^ "_CCS#" ^ identifier in
+		let license_profile = "CXSTP_" ^ edition ^ "_CCS#" ^ identifier in
 		let result = Lpe.initialise address (Int32.to_int port) edition license_profile Xapi_globs.dbv in
 		match result with
 		(* licensed, grace, days_to_expire, status code *)
