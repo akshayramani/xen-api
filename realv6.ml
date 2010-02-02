@@ -39,7 +39,9 @@ let initialise address port edition =
 			match data_split with
 			| [a; b] -> float_of_string a, int_of_string b
 			| _ -> failwith "error reading timestamp file"
-		with _ -> 0., 0
+		with _ ->
+			error "LPE gave grace license, but no real license had been checked out before!";
+			0., 0
 	in
 	let init_lpe () =
 		(* The license profile is a special string needed by the GetLicense call of the LPE
@@ -62,16 +64,22 @@ let initialise address port edition =
 			(* set grace expiry to 30 days after the last succesful checkout, but
 			 * never more than the expiry date of that last checkout *)
 			let last_checkout_time, last_days_to_expire = read_last_checkout_data () in
-			let last_checkout_delta = (Unix.time ()) -. (last_checkout_time) in
-			let days_past = int_of_float (last_checkout_delta /. 3600. /. 24.) in
-			let max_grace = if last_days_to_expire > -1 then min 30 last_days_to_expire else 30 in
-			let days_to_expire = max (max_grace - days_past) 0 in
-			state := Some {edition = edition;
-						   licensed = "grace";
-						   days_to_expire = Int32.of_int days_to_expire;
-						   timestamp = Unix.time ()};
-			ignore(V6alert.send_alert Api_messages.v6_grace_license "The license server is unreachable. However, a grace license is given, as a similar license was successfully checked out recently.");
-			"grace", Int32.of_int days_to_expire
+			if last_checkout_time > 0. then begin
+				let last_checkout_delta = (Unix.time ()) -. (last_checkout_time) in
+				let days_past = int_of_float (last_checkout_delta /. 3600. /. 24.) in
+				let max_grace = if last_days_to_expire > -1 then min 30 last_days_to_expire else 30 in
+				let days_to_expire = max (max_grace - days_past) 0 in
+				state := Some {edition = edition;
+							   licensed = "grace";
+							   days_to_expire = Int32.of_int days_to_expire;
+							   timestamp = Unix.time ()};
+				ignore(V6alert.send_alert Api_messages.v6_grace_license "The license server is unreachable. However, a grace license is given, as a similar license was successfully checked out recently.");
+				"grace", Int32.of_int days_to_expire
+			end else begin
+				debug "signalling a checkout failure";
+				ignore (V6alert.send_alert Api_messages.v6_comm_error "The license could not be checked out, because the license server could not be reached at the given address/port. Please check the connection details, and verify that the license server is running.");
+				"declined", Int32.of_int (-1)
+			end
 		| false, _, _, status ->
 			debug "license declined, checkout status: %d" status;
 			state := Some {edition = edition;
