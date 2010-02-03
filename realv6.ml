@@ -49,9 +49,18 @@ let initialise address port edition =
 		let identifier = String.sub (Uuid.to_string (Uuid.make_uuid ())) 0 13 in
 		let license_profile = "CXSTP_" ^ edition ^ "_CCS#" ^ identifier in
 		let result = Lpe.initialise address (Int32.to_int port) edition license_profile Xapi_globs.dbv in
+		(match result with
+		| a, b, c, d ->	debug "LPE response: %b %b %d %d" a b c d
+		| _ -> ());
 		match result with
 		(* licensed, grace, days_to_expire, status code *)
-		| true, false, days_to_expire, _ ->
+		| true, false, days_to_expire, _ 
+		| true, true, days_to_expire, _ when days_to_expire > 0 
+			(* NOTE: The latter pattern is there because the LPE sometimes gives 
+			 * a "grace" license when it is actually a real license, as seen from the
+			 * real expiry date. I suppose this hack does not work when perpetual (retail)
+			 * licenses are used. This should be addressed in the LPE! *)
+			->
 			debug "got real license, %d days to expire" days_to_expire;
 			state := Some {edition = edition;
 						   licensed = "real";
