@@ -3,22 +3,34 @@
 (** Citrix proprietary code *)
 val _proprietary_code_marker : string
 
-(** Location of the cache directory of the LPE *)
+(** Represents the result of {!get_license}. *)
+type checkout_result_t =
+	| Granted_real		(** A real license was checked out *)
+	| Granted_grace		(** A grace license was granted *)
+	| Unreachable		(** No license was granted, because the license server was unreachable *)
+	| Rejected			(** The license server rejected the checkout request *)
+
+(** Indicated when a given license will expire. *)
+type expiry_t =
+	| Permanent		(** The license is permanent and will never expire *)
+	| Days of int	(** The license will expire in the given number of days *)
+
+(** Location of the cache directory of the LPE. *)
 val v6_cache_dir : string
 
-(** Initialise LPE and check out license *)
-external initialise :
-  string -> int -> string -> string -> string -> bool * bool * int * int
-  = "initialise_c"
-  
-(** Release license, and shut down and clean up LPE *)
-external shutdown : unit -> bool = "shutdown_c"
+(** Allocate memory and set up thread for callbacks.
+ *  This needs to be done before starting the LPE. *)
+val init : unit -> unit
 
-(** Set the PID of the pipe used for callbacks *)
-external set_pipe : int -> unit = "set_pipe_c"
+(** Initialise and start LPE. *)
+val start: string -> int -> string -> string -> string -> bool
 
-(** Allocate memory and register cache directory *)
-external alloc_and_set_cache_dir : string -> unit = "alloc_and_set_cache_dir_c"
+(** Check out license. *)
+val get_license: unit -> checkout_result_t option * expiry_t option
 
-(** Allocate memory and set up thread for callbacks *)
-val init : unit -> Thread.t
+(** Release license, if holding one. *)
+val release_license: unit -> bool
+
+(** Shut down and clean up LPE. *)
+val stop: unit -> bool
+

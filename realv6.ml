@@ -16,7 +16,7 @@ let state = ref None
 let shutdown () =
 	debug "shutdown";
 	state := None;
-	Lpe.shutdown ()
+	Lpe.stop ()
 
 let initialise address port edition =
 	debug "initialise (address = %s, port = %d, edition = %s)"
@@ -44,67 +44,66 @@ let initialise address port edition =
 			0., 0
 	in
 	let init_lpe () =
-		(* The license profile is a special string needed by the GetLicense call of the LPE
-		 * It contains the edition and a unique identifier (see LPE API docs on wiki). *)
-		let identifier = String.sub (Uuid.to_string (Uuid.make_uuid ())) 0 13 in
-		let license_profile = "CXSTP_" ^ edition ^ "_CCS#" ^ identifier in
-		let result = Lpe.initialise address (Int32.to_int port) edition license_profile Xapi_globs.dbv in
-		(match result with
-		| a, b, c, d ->	debug "LPE response: %b %b %d %d" a b c d
-		| _ -> ());
-		match result with
-		(* licensed, grace, days_to_expire, status code *)
-		| true, false, days_to_expire, _ 
-		| true, true, days_to_expire, _ when days_to_expire > 0 
-			(* NOTE: The latter pattern is there because the LPE sometimes gives 
-			 * a "grace" license when it is actually a real license, as seen from the
-			 * real expiry date. I suppose this hack does not work when perpetual (retail)
-			 * licenses are used. This should be addressed in the LPE! *)
-			->
-			debug "got real license, %d days to expire" days_to_expire;
-			state := Some {edition = edition;
-						   licensed = "real";
-						   days_to_expire = Int32.of_int days_to_expire;
-						   timestamp = Unix.time ()};
-			write_last_checkout_data ();
-			"real", Int32.of_int days_to_expire
-		| true, true, _, _ ->
-			debug "got grace license";
-			(* set grace expiry to 30 days after the last succesful checkout, but
-			 * never more than the expiry date of that last checkout *)
-			let last_checkout_time, last_days_to_expire = read_last_checkout_data () in
-			if last_checkout_time > 0. then begin
-				let last_checkout_delta = (Unix.time ()) -. (last_checkout_time) in
-				let days_past = int_of_float (last_checkout_delta /. 3600. /. 24.) in
-				let max_grace = if last_days_to_expire > -1 then min 30 last_days_to_expire else 30 in
-				let days_to_expire = max (max_grace - days_past) 0 in
+		if Lpe.start address (Int32.to_int port) "CXSTP" edition Xapi_globs.dbv then begin
+			let result = Lpe.get_license () in
+			match result with
+			(* Lpe.checkout_result_t option, Lpe.expiry_t option *)
+			| Some Lpe.Granted_real, Some expiry
+				->
+				debug "Got real license";
+				let days_to_expire =
+					match expiry with
+					| Lpe.Permanent -> debug "Permanent license"; Int32.of_int (-1)
+					| Lpe.Days d -> debug "%d days to expire" d; Int32.of_int d
+				in
 				state := Some {edition = edition;
-							   licensed = "grace";
-							   days_to_expire = Int32.of_int days_to_expire;
+							   licensed = "real";
+							   days_to_expire = days_to_expire;
 							   timestamp = Unix.time ()};
-				ignore(V6alert.send_alert Api_messages.v6_grace_license "The license server is unreachable. However, a grace license is given, as a similar license was successfully checked out recently.");
-				"grace", Int32.of_int days_to_expire
-			end else begin
-				debug "signalling a checkout failure";
-				ignore (V6alert.send_alert Api_messages.v6_comm_error "The license could not be checked out, because the license server could not be reached at the given address/port. Please check the connection details, and verify that the license server is running.");
+				write_last_checkout_data ();
+				"real", days_to_expire
+			| Some Lpe.Granted_grace, _ ->
+				(* set grace expiry to 30 days after the last succesful checkout, but
+				 * never more than the expiry date of that last checkout *)
+				let last_checkout_time, last_days_to_expire = read_last_checkout_data () in
+				if last_checkout_time > 0. then begin
+					debug "Got grace license";
+					let last_checkout_delta = (Unix.time ()) -. (last_checkout_time) in
+					let days_past = int_of_float (last_checkout_delta /. 3600. /. 24.) in
+					let max_grace = if last_days_to_expire > -1 then min 30 last_days_to_expire else 30 in
+					let days_to_expire = Int32.of_int (max (max_grace - days_past) 0) in
+					state := Some {edition = edition;
+								   licensed = "grace";
+								   days_to_expire = days_to_expire;
+								   timestamp = Unix.time ()};
+					V6alert.send_v6_grace_license ();
+					"grace", days_to_expire
+				end else begin
+					debug "Signalling a checkout failure";
+					V6alert.send_v6_comm_error ();
+					"declined", Int32.of_int (-1)
+				end
+			| checkout_result, _ ->
+				debug "License declined";
+				state := Some {edition = edition;
+							   licensed = "declined";
+							   days_to_expire = Int32.of_int (-1);
+							   timestamp = Unix.time ()};
+				begin match checkout_result with
+				| Some Lpe.Rejected -> V6alert.send_v6_rejected ()
+				| Some Lpe.Unreachable -> V6alert.send_v6_comm_error ()
+				| _ -> ()
+				end;
 				"declined", Int32.of_int (-1)
-			end
-		| false, _, _, status ->
-			debug "license declined, checkout status: %d" status;
-			state := Some {edition = edition;
-						   licensed = "declined";
-						   days_to_expire = Int32.of_int (-1);
-						   timestamp = Unix.time ()};
-			begin match status with
-			| 2 -> ignore (V6alert.send_alert Api_messages.v6_rejected "The requested license is not available at the license server.")
-			| _ -> ignore (V6alert.send_alert Api_messages.v6_comm_error "The license could not be checked out, because the license server could not be reached at the given address/port. Please check the connection details, and verify that the license server is running.")
-			end;
+		end else begin
+			V6alert.send_v6_comm_error ();
 			"declined", Int32.of_int (-1)
+		end
 	in	
 	match !state with
 	| Some s ->
 		if s.edition = edition then begin
-			debug "already initialised with same edition; returning state";
+			debug "Already initialised with same edition; returning state";
 			if Int32.to_int s.days_to_expire > -1 then begin
 				let days_past = int_of_float ((Unix.time () -. s.timestamp) /. 3600. /. 24.) in
 				let days_to_expire = Int32.to_int s.days_to_expire - days_past in
@@ -112,7 +111,7 @@ let initialise address port edition =
 			end else
 				s.licensed, s.days_to_expire
 		end else begin
-			debug "already initialised, but with different edition; shutting down first";
+			debug "Already initialised, but with different edition; shutting down first";
 			shutdown ();
 			init_lpe ()
 		end
