@@ -164,8 +164,15 @@ CAMLprim value start_c(value address, value port, value product, value edition, 
 			D("starting LPE...\n");
 			result = MFLic_StartPolicyEng(lpe_handle);
 	
-			if (result != MFLIC_SUCCESS) {
+			// MFLIC_INSUFFICIENT_RESOURCES means that there was a timeout when
+			// starting the LPE. We'll just continue then as if nothing has happened
+			// (as recommended by the FTL licensing team). GetLicense may then give
+			// an incorrect value for pLicenseGiven, so we'll workaround this in lpe.ml
+			// by looking only at the license server up/down callbacks to decide whether
+			// a given license was real or grace.
+			if (result != MFLIC_SUCCESS && result != MFLIC_INSUFFICIENT_RESOURCES) {
 				D("!! error %d\n", result);
+				MFLic_ShutdownPolicyEng(lpe_handle);
 				cleanup();
 			}
 			else {
