@@ -138,7 +138,7 @@ let get_license () =
 				(* License server rejected the request *)
 				debug "reqStatus = 2: license rejected";
 				(* release is needed, as license request is kept in LPE *)
-				release_license_c s.profile;
+				release_license_c profile;
 				Rejected, None, false
 			| reqStatus, _, _ when reqStatus > 2 ->
 				(* License server could not be reached *)
