@@ -41,3 +41,7 @@ val stop: unit -> bool
  *  function, and only license matching these will be checked. *)
 val component_licensed: string -> checkout_result_t
 
+(** Check for the presence of a license on the server. This function does not
+ *  use the LPE, but the so-called helper APIs. *)
+val license_check: string -> int -> string -> string -> string -> checkout_result_t
+

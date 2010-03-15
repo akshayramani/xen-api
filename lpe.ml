@@ -17,6 +17,8 @@ external release_license_c: string -> bool = "release_license_c"
 external component_status_c: string -> string -> int = "component_status_c"
 external stop_c: unit -> bool = "stop_c"
 
+external license_check_c: string -> int -> string -> string -> string -> int = "license_check_c"
+
 (* get_license result types *)
 
 type checkout_result_t = Granted_real | Granted_grace | Unreachable | Rejected
@@ -229,3 +231,11 @@ let stop () =
 		reset_state ();
 		false
 		
+
+let license_check address port product edition dbv =
+	let result = license_check_c address port product edition dbv in
+	match result with
+	| 2 -> Granted_real
+	| 1 -> Rejected
+	| 0 | _ -> Unreachable
+	

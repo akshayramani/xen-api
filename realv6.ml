@@ -27,32 +27,45 @@ let initialise address port edition =
 		failwith "unknown edition";
 
 	let ts_file = Lpe.v6_cache_dir ^ "/ts" in
+	let hash s = string_of_int (String.fold_left (fun t c -> t + (int_of_char c)) 0 s) in
 	let write_last_checkout_data p e =
 		let timestamp = string_of_float (Unix.time ()) in
 		let days_to_expire = match !state with Some s -> Int32.to_string s.days_to_expire | None -> "-1" in
-		Unixext.write_string_to_file ts_file (p ^ "\n" ^ e ^ "\n" ^ timestamp ^ "\n" ^ days_to_expire)
+		let server = address ^ (Int32.to_string port) in
+		let data = p ^ "\n" ^ e ^ "\n" ^ timestamp ^ "\n" ^ days_to_expire ^ "\n" ^ server in
+		let checksum = hash data in
+		let data = data ^ "\n" ^ checksum in
+		Unixext.write_string_to_file ts_file data
 	in
 	let read_last_checkout_data () =
 		try
 			(* file should contain last_checkout_time and last_days_to_expire *)
 			let data = Unixext.read_whole_file_to_string ts_file in
-			let data_split = String.split '\n' data in
-			match data_split with
-			| [a; b; c; d] -> a, b, float_of_string c, int_of_string d
-			| _ -> failwith "error reading timestamp file"
+			let x = String.rindex data '\n' in
+			let checksum = String.sub_to_end data (x + 1) in
+			let data = String.sub data 0 x in
+			debug "%s - %s - %s" data checksum (hash data);
+			if hash data <> checksum then
+				failwith "someone has tampered with the timestamp file!"
+			else
+				let data_split = String.split '\n' data in
+				match data_split with
+				| [a; b; c; d; e] ->
+					a, b, float_of_string c, int_of_string d, e
+				| _ -> failwith "error reading timestamp file!"
 		with _ ->
-			"", "", 0., 0
+			"", "", 0., 0, ""
 	in
 	let init_lpe () =
 		if edition = "XD" then
-			let last_product, last_edition, last_checkout_time, _ = read_last_checkout_data () in
+			let last_product, last_edition, last_checkout_time, _, last_server = read_last_checkout_data () in
 			let last_checkout_delta = Unix.time () -. last_checkout_time in
 			let days_since_last_checkout = int_of_float (last_checkout_delta /. 3600. /. 24.) in
-			let xd_edition_to_component = ["ENT", "VDE"; "PLT", "VDP"] in
 			let check p e =
 				(* The following will not work for XDT licenses, which use the UD profile.
 				 * The LPE does not support such licenses... a different solution needs
 				 * to be found. *)
+				let xd_edition_to_component = ["ENT", "VDE"; "PLT", "VDP"] in
 				let started = Lpe.start address (Int32.to_int port) p e Xapi_globs.dbv in
 				if started = true then
 					let c = List.assoc e xd_edition_to_component in
@@ -61,6 +74,19 @@ let initialise address port edition =
 					licensed
 				else
 					Lpe.Unreachable
+			in
+			let new_check p e =
+				(* This function should work with all license types *)
+				let result = Lpe.license_check address (Int32.to_int port) p e Xapi_globs.dbv in
+				match result with
+				| Lpe.Unreachable ->
+					let server = address ^ (Int32.to_string port) in
+					if days_since_last_checkout < 30 && last_product = p &&
+						last_edition = e && last_server = server then
+						Lpe.Granted_grace
+					else
+						Lpe.Unreachable
+				| Lpe.Rejected | Lpe.Granted_real -> result
 			in
 			let combinations =
 				let last = last_product, last_edition in
@@ -78,7 +104,7 @@ let initialise address port edition =
 			| (p, e) :: tl ->
 				(* If the server cannot be reached, stop immediately. Otherwise,
 				 * continue trying to find a non-rejection. *)
-				let l = check p e in
+				let l = new_check p e in
 				if l = Lpe.Unreachable then
 					Lpe.Unreachable, "", ""
 				else if l = Lpe.Rejected then
@@ -127,7 +153,7 @@ let initialise address port edition =
 				| Some Lpe.Granted_grace, _ ->
 					(* set grace expiry to 30 days after the last succesful checkout, but
 					 * never more than the expiry date of that last checkout *)
-					let _, _, last_checkout_time, last_days_to_expire = read_last_checkout_data () in
+					let _, _, last_checkout_time, last_days_to_expire, _ = read_last_checkout_data () in
 					if last_checkout_time > 0. then begin
 						debug "Got grace license";
 						let last_checkout_delta = (Unix.time ()) -. (last_checkout_time) in

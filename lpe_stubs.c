@@ -6,6 +6,7 @@ static const char* _proprietary_code_marker = "Citrix proprietary code";
 #include <caml/callback.h>
 #include <caml/memory.h>
 #include "MFLic.h"
+#include "LicHlp.h"
 
 #ifndef DEBUG
 #define D
@@ -425,5 +426,62 @@ CAMLprim value stop_c(void)
 	
 	// return success/failure
 	return Val_bool(success);
+}
+
+CAMLprim value license_check_c(value address, value port, value product, value edition, value dbv)
+{
+	void *handle;
+	LICHLP_STATUS status;
+	unsigned int up = 0, found = 0;
+	
+	wchar_t *w_address = NULL;
+	wchar_t *w_edition = NULL;
+	wchar_t *w_product = NULL;
+	wchar_t *w_dbv = NULL;
+	DWORD d_port;
+	
+	// protect params from OCaml GC and declare return value
+	CAMLparam5(address, port, product, edition, dbv);
+	
+	// obtain and convert parameters
+	w_address = malloc(128 * sizeof(wchar_t));
+	w_edition = malloc(4 * sizeof(wchar_t));
+	w_product = malloc(32 * sizeof(wchar_t));
+	w_dbv = malloc(10 * sizeof(wchar_t));
+	swprintf(w_address, 128, L"%s", String_val(address));
+	swprintf(w_product, 32, L"%s", String_val(product));
+	swprintf(w_edition, 4, L"%s", String_val(edition));
+	swprintf(w_dbv, 10, L"%s", String_val(dbv));
+	d_port = Int_val(port);
+	
+	D("LICENSE_CHECK\n%ls, %d, %ls, %ls, %ls\n", w_address, d_port, w_product, w_edition, w_dbv);
+
+	status = LicHlp_CreateJob(&handle, w_address, d_port); /* License server IP/name */
+	if (status == LICHLP_SUCCESS && handle != NULL) {
+		printf("job created\n");
+		LicHlp_CheckLSStatus(handle, (ABS_BOOL*) &up);
+		printf("LS status %d\n", up);
+		if (up == TRUE) {
+			status = LicHlp_CheckForLicFiles(handle, w_product, w_edition, w_dbv, (ABS_BOOL*) &found);
+			if (status == LICHLP_SUCCESS) {
+				printf("found is %d\n", found);
+			}
+		}
+		LicHlp_DeleteJob(handle);
+	}
+	else
+		printf("job NOT created\n");
+	
+	free(w_address);
+	free(w_edition);
+	free(w_product);
+	free(w_dbv);
+	
+	if (!up)
+		CAMLreturn(Val_int(0));		// could not contact license server
+	else if (!found)
+		CAMLreturn(Val_int(1));		// license server up, but license not present
+	else
+		CAMLreturn(Val_int(2));		// license found server
 }
 

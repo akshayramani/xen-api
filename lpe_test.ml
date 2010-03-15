@@ -7,6 +7,8 @@ external release_license_c: string -> bool = "release_license_c"
 external component_status_c: string -> string -> int = "component_status_c"
 external stop_c: unit -> bool = "stop_c"
 
+external license_check_c: string -> int -> string -> string -> string -> int = "license_check_c"
+
 let init () =
 	(* set cache directory for LPE *)
 	alloc_and_set_cache_dir "lpe-cache"
