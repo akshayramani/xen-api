@@ -34,3 +34,10 @@ val release_license: unit -> bool
 (** Shut down and clean up LPE. *)
 val stop: unit -> bool
 
+(** Check whether a {i component} is licensed. Each license has a list of components
+ *  that it enables. This function checks for the presence of a license that has
+ *  the given component, whether the license need not be checked out. The LPE does
+ *  need to be {!start}ed with valid product and edition strings, before calling this
+ *  function, and only license matching these will be checked. *)
+val component_licensed: string -> checkout_result_t
+

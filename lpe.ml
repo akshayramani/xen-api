@@ -14,6 +14,7 @@ external alloc_and_set_cache_dir: string -> unit = "alloc_and_set_cache_dir_c"
 external start_c: string -> int -> string -> string -> string -> bool = "start_c"
 external get_license_c: string -> int * int * int = "get_license_c"
 external release_license_c: string -> bool = "release_license_c"
+external component_status_c: string -> string -> int = "component_status_c"
 external stop_c: unit -> bool = "stop_c"
 
 (* get_license result types *)
@@ -138,7 +139,7 @@ let get_license () =
 				(* License server rejected the request *)
 				debug "reqStatus = 2: license rejected";
 				(* release is needed, as license request is kept in LPE *)
-				release_license_c profile;
+				ignore (release_license_c profile);
 				Rejected, None, false
 			| reqStatus, _, _ when reqStatus > 2 ->
 				(* License server could not be reached *)
@@ -148,6 +149,7 @@ let get_license () =
 				(* Obtained license *)
 				debug "reqStatus = %d, pLicenseGiven = %d, days_to_expire = %d"
 					reqStatus pLicenseGiven days_to_expire;
+				(* Wait for server status to settle *)
 				Mutex.lock m;
 				if !server_status = Unknown then
 					Condition.wait c m;
@@ -158,7 +160,7 @@ let get_license () =
 					debug "Checked out a real license";
 					let expiry = if days_to_expire = -1 then Permanent else Days days_to_expire in
 					Granted_real, Some expiry, true
-				| _ -> (* can only be Down here, not Unknown *)
+				| _ -> (* Can only be Down here, not Unknown *)
 					debug "Got a grace license";
 					Granted_grace, None, true
 		in
@@ -180,6 +182,39 @@ let release_license () =
 		debug "No license to release";
 		false
 
+
+let component_licensed component =
+	match !state with
+	| Some ({started = true} as s) ->
+		debug "Checking component status; product: %s, component: %s" s.product component;
+		(* Wait for server status to settle *)
+		Mutex.lock m;
+		if !server_status = Unknown then
+			Condition.wait c m;
+		let server = !server_status in
+		Mutex.unlock m;
+		(* Check component status *)
+		let success = (component_status_c s.product component) == 0 in
+		begin match server, success with
+		| Up, true ->
+			debug "Component is licensed";
+			Granted_real
+		| Up, false ->
+			debug "Component NOT licensed";
+			Rejected
+		| Down, true -> 
+			debug "Component is GRACE licensed";
+			Granted_grace
+		| Down, false -> 
+			debug "Communication problem";
+			Unreachable
+		| _ -> (* Pattern will never match, as server cannot be Unknown here *)
+			Unreachable
+		end
+	| _ ->
+		debug "Cannot check status: LPE is not running";
+		Unreachable
+		
 	
 let stop () =
 	match !state with

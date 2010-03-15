@@ -338,6 +338,69 @@ CAMLprim value release_license_c(value profile)
 	CAMLreturn(success);
 }
 
+CAMLprim value component_status_c(value product, value component)
+{
+	MFLIC_STATUS result;
+	MFLIC_COMP_STATUS compStat = 0;
+	
+	wchar_t *w_product = NULL;
+	wchar_t *w_component = NULL;
+	wchar_t *szCompLicVer = NULL;
+	w_product = malloc(32 * sizeof(wchar_t));
+	w_component = malloc(4 * sizeof(wchar_t));
+	szCompLicVer = malloc(10 * sizeof(wchar_t));
+	
+	swprintf(szCompLicVer, 10, L"%s", "0000.0000");
+			
+	// protect params from OCaml GC and declare return value
+	CAMLparam2(product, component);
+
+	// return value: license is available or not
+	CAMLlocal1(available);
+	available = Val_int(-1);
+	
+	// obtain and convert parameters	
+	swprintf(w_product, 32, L"%s", String_val(product));
+	swprintf(w_component, 4, L"%s", String_val(component));
+	
+	D("LICENSE_AVAILABLE\n%ls, %ls\n", w_product, w_component);
+	
+	if (lpe_handle != NULL) {			
+		D("check for license availability...\n");
+		result = MFLic_QueryCompStatus2(lpe_handle, w_component, &compStat, &szCompLicVer, w_product);
+		
+		if (result != MFLIC_SUCCESS) {
+			D("!! error %d\n", result);
+		}
+		else {
+			D("    ok\n");		
+			switch (compStat) {
+			case COMP_LICENSED:
+				D("    license present\n", compStat);
+				D("    burn-in date: %ls\n", szCompLicVer);
+				available = Val_int(0);
+				break;
+			case COMP_NOT_LICENSED:
+				D("    license not present\n", compStat);
+				available = Val_int(1);
+				break;
+			case NO_COMP_DATA:
+			default:
+				D("    no information\n", compStat);
+				available = Val_int(2);
+				break;
+			}
+		}
+	}
+		
+	free(w_product);
+	free(w_component);
+	free(szCompLicVer);
+	
+	// return success/failure
+	CAMLreturn(available);
+}
+
 // shut down and clean up the LPE
 CAMLprim value stop_c(void)
 {
