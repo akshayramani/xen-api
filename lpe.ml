@@ -86,6 +86,8 @@ let monitor_callbacks () =
 				debug "License expired";
 				ignore(V6alert.send_alert Api_messages.v6_license_expired "");
 				last_alert := "e"
+			| "v" ->
+				error "Incompatible license-server version!"
 			| x -> debug "Unknown or redundant callback '%s'" x
 			end;
 			receive ()

@@ -71,6 +71,13 @@ int LicExpired(MFLIC_LICENSE_POLICY_OBJECT_HANDLE h, void *d)
 	return 0;
 }
 
+int IncompatibleLSVersion(MFLIC_LICENSE_POLICY_OBJECT_HANDLE h, void *d,
+	WCHAR *name, DWORD port)
+{
+	D("incompatible license-server version\n");
+	write(callback_pid, "v", 1);
+	return 0;
+}
 
 // Call this function when the daemon is started, and only once!!
 // note that the memory allocated here is simply kept throughout the lifetime
@@ -85,6 +92,7 @@ CAMLprim value alloc_and_set_cache_dir_c(value dir)
 
 	callbacks.pfnLSConnStatusChange = &LSConnStatusChange;
 	callbacks.pfnLicExpired = &LicExpired;
+	callbacks.pfnIncompatibleLSVersion = &IncompatibleLSVersion;
 	
 	CAMLreturn(Val_unit);
 }
