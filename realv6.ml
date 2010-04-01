@@ -140,7 +140,7 @@ let initialise address port edition =
 					loop ()
 				in
 				Mutex.execute m (fun () ->
-					if !xd_grace_thread then begin
+					if !xd_grace_thread = false then begin
 						xd_grace_thread := true;
 						ignore (Thread.create grace_thread ())
 					end
