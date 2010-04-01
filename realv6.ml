@@ -148,27 +148,34 @@ let initialise address port edition =
 								   licensed = "real";
 								   days_to_expire = days_to_expire;
 								   timestamp = Unix.time ()};
-					write_last_checkout_data v6product edition;
 					"real", days_to_expire
 				| Some Lpe.Granted_grace, _ ->
-					(* set grace expiry to 30 days after the last succesful checkout, but
-					 * never more than the expiry date of that last checkout *)
-					let _, _, last_checkout_time, last_days_to_expire, _ = read_last_checkout_data () in
-					if last_checkout_time > 0. then begin
-						debug "Got grace license";
-						let last_checkout_delta = (Unix.time ()) -. (last_checkout_time) in
-						let days_past = int_of_float (last_checkout_delta /. 3600. /. 24.) in
-						let max_grace = if last_days_to_expire > -1 then min 30 last_days_to_expire else 30 in
-						let days_to_expire = Int32.of_int (max (max_grace - days_past) 0) in
+					let grace_expiry = Lpe.get_grace_expiry v6product in
+					begin match grace_expiry with
+					| Some hours_left ->
+						let days_to_expire = 
+							(* round up to avoid getting a 0-day license *)
+							if hours_left mod 24 = 0 then
+								hours_left / 24
+							else
+								hours_left / 24 + 1
+						in
+						debug "Got grace license for %d day(s)" days_to_expire;
+						let days_to_expire = Int32.of_int days_to_expire in
 						state := Some {edition = edition;
-									   licensed = "grace";
-									   days_to_expire = days_to_expire;
-									   timestamp = Unix.time ()};
+							licensed = "grace";
+							days_to_expire = days_to_expire;
+							timestamp = Unix.time ()};
 						V6alert.send_v6_grace_license ();
 						"grace", days_to_expire
-					end else begin
-						debug "Signalling a checkout failure";
-						V6alert.send_v6_comm_error ();
+					| _ ->
+						debug "License declined";
+						Lpe.release_license ();
+						state := Some {edition = edition;
+									   licensed = "declined";
+									   days_to_expire = Int32.of_int (-1);
+									   timestamp = Unix.time ()};
+						V6alert.send_v6_rejected ();
 						"declined", Int32.of_int (-1)
 					end
 				| checkout_result, _ ->

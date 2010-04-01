@@ -493,3 +493,43 @@ CAMLprim value license_check_c(value address, value port, value product, value e
 		CAMLreturn(Val_int(2));		// license found server
 }
 
+CAMLprim value get_grace_info_c(value product)
+{
+	MFLIC_STATUS result;
+	LONG CCUGPConnLimit = 0;
+	LONG NUGPConnLimit = 0;
+	DWORD GPTimeLeft = 0;
+	
+	wchar_t *w_product = NULL;
+	w_product = malloc(32 * sizeof(wchar_t));
+			
+	// protect params from OCaml GC and declare return value
+	CAMLparam1(product);
+	
+	// obtain and convert parameters	
+	swprintf(w_product, 32, L"%s", String_val(product));
+	
+	D("GET_GRACE_INFO\n%ls\n", w_product);
+	
+	if (lpe_handle != NULL) {			
+		D("getting grace information...\n");
+		result = MFLic_GetGPInfo(lpe_handle, &CCUGPConnLimit, &NUGPConnLimit,
+			&GPTimeLeft);
+		
+		if (result != MFLIC_SUCCESS) {
+			D("!! error %d\n", result);
+		}
+		else {
+			D("    ok\n");
+			D("CCUGPConnLimit: %d\n", CCUGPConnLimit);
+			D("NUGPConnLimit: %d\n", NUGPConnLimit);
+			D("GPTimeLeft: %d\n", GPTimeLeft);
+		}
+	}
+		
+	free(w_product);
+	
+	// return grace time left in hours
+	CAMLreturn(Val_int(GPTimeLeft));
+}
+

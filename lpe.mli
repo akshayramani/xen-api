@@ -45,3 +45,6 @@ val component_licensed: string -> checkout_result_t
  *  use the LPE, but the so-called helper APIs. *)
 val license_check: string -> int -> string -> string -> string -> checkout_result_t
 
+(** Returns the number of hours till the expiry of a grace license, if the LPE
+ *  is running. This result is only useful when holding a grace license. *)
+val get_grace_expiry: string -> int option
