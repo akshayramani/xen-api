@@ -3,6 +3,7 @@ let _proprietary_code_marker = "Citrix proprietary code"
 module D=Debug.Debugger(struct let name="v6api" end)
 open D
 open Stringext
+open Threadext
 
 type state_type = {
 	edition: string;
@@ -13,9 +14,13 @@ type state_type = {
 
 let state = ref None
 
+let xd_grace_thread = ref false
+let m = Mutex.create ()
+
 let shutdown () =
 	debug "shutdown";
 	state := None;
+	Mutex.execute m (fun () -> xd_grace_thread := false);
 	Lpe.stop ()
 
 let initialise address port edition =
@@ -28,16 +33,18 @@ let initialise address port edition =
 
 	let ts_file = Lpe.v6_cache_dir ^ "/ts" in
 	let hash s = string_of_int (String.fold_left (fun t c -> t + (int_of_char c)) 0 s) in
-	let write_last_checkout_data p e =
-		let timestamp = string_of_float (Unix.time ()) in
-		let days_to_expire = match !state with Some s -> Int32.to_string s.days_to_expire | None -> "-1" in
-		let server = address ^ (Int32.to_string port) in
-		let data = p ^ "\n" ^ e ^ "\n" ^ timestamp ^ "\n" ^ days_to_expire ^ "\n" ^ server in
-		let checksum = hash data in
-		let data = data ^ "\n" ^ checksum in
-		Unixext.write_string_to_file ts_file data
+	let write_last_check_data p e =
+		try
+			let timestamp = string_of_float (Unix.time ()) in
+			let days_to_expire = match !state with Some s -> Int32.to_string s.days_to_expire | None -> "-1" in
+			let server = address ^ (Int32.to_string port) in
+			let data = p ^ "\n" ^ e ^ "\n" ^ timestamp ^ "\n" ^ days_to_expire ^ "\n" ^ server in
+			let checksum = hash data in
+			let data = data ^ "\n" ^ checksum in
+			Unixext.write_string_to_file ts_file data
+		with _ -> ()
 	in
-	let read_last_checkout_data () =
+	let read_last_check_data () =
 		try
 			(* file should contain last_checkout_time and last_days_to_expire *)
 			let data = Unixext.read_whole_file_to_string ts_file in
@@ -58,7 +65,7 @@ let initialise address port edition =
 	in
 	let init_lpe () =
 		if edition = "XD" then
-			let last_product, last_edition, last_checkout_time, _, last_server = read_last_checkout_data () in
+			let last_product, last_edition, last_checkout_time, _, last_server = read_last_check_data () in
 			let last_checkout_delta = Unix.time () -. last_checkout_time in
 			let days_since_last_checkout = int_of_float (last_checkout_delta /. 3600. /. 24.) in
 			let check p e =
@@ -79,6 +86,9 @@ let initialise address port edition =
 				(* This function should work with all license types *)
 				let result = Lpe.license_check address (Int32.to_int port) p e Xapi_globs.dbv in
 				match result with
+				| Lpe.Granted_real -> 
+					write_last_check_data p e;
+					Lpe.Granted_real
 				| Lpe.Unreachable ->
 					let server = address ^ (Int32.to_string port) in
 					if days_since_last_checkout < 30 && last_product = p &&
@@ -86,7 +96,7 @@ let initialise address port edition =
 						Lpe.Granted_grace
 					else
 						Lpe.Unreachable
-				| Lpe.Rejected | Lpe.Granted_real -> result
+				| Lpe.Rejected -> Lpe.Rejected
 			in
 			let combinations =
 				let last = last_product, last_edition in
@@ -100,24 +110,41 @@ let initialise address port edition =
 					all
 			in
 			let rec search = function
-			| [] -> Lpe.Rejected, "", ""
+			| [] -> Lpe.Rejected
 			| (p, e) :: tl ->
 				(* If the server cannot be reached, stop immediately. Otherwise,
 				 * continue trying to find a non-rejection. *)
 				let l = new_check p e in
 				if l = Lpe.Unreachable then
-					Lpe.Unreachable, "", ""
+					Lpe.Unreachable
 				else if l = Lpe.Rejected then
 					search tl
 				else (* real or grace license *)
-					l, p, e
+					l
 			in
-			let result, v6product, v6edition = search combinations in
+			let result = search combinations in
 			(* the state need not be set here, as the LPE is shut down immediately *)
 			match result with
 			| Lpe.Granted_real ->
 				debug "XD license present on license server";
-				write_last_checkout_data v6product v6edition;
+				let grace_thread () =
+					let rec loop () =
+						Thread.delay 600.;
+						debug "Polling for XD license to reset grace period";
+						ignore (search combinations);
+						if Mutex.execute m (fun () -> !xd_grace_thread) then
+							loop ()
+						else
+							debug "Stopping XD polling thread"
+					in
+					loop ()
+				in
+				Mutex.execute m (fun () ->
+					if !xd_grace_thread then begin
+						xd_grace_thread := true;
+						ignore (Thread.create grace_thread ())
+					end
+				);
 				"real", Int32.of_int (-1)
 			| Lpe.Granted_grace ->
 				let days_to_expire = 30 - days_since_last_checkout in
