@@ -237,11 +237,12 @@ let stop () =
 		
 
 let license_check address port product edition dbv =
+	debug "Checking for %s %s" product edition;
 	let result = license_check_c address port product edition dbv in
 	match result with
-	| 2 -> Granted_real
-	| 1 -> Rejected
-	| 0 | _ -> Unreachable
+	| 2 -> debug "License present"; Granted_real
+	| 1 -> debug "License not present"; Rejected
+	| 0 | _ -> debug "Server unreachable"; Unreachable
 	
 	
 let get_grace_expiry product =

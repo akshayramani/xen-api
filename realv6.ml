@@ -105,7 +105,7 @@ let initialise address port edition =
 				 * LPE grace functionality to work: move the last hit to the head of 
 				 * the queue. *)
 				if days_since_last_checkout < 30 && List.mem last all then
-					last :: List.filter (fun c -> c = last) all
+					last :: List.filter (fun c -> c <> last) all
 				else
 					all
 			in
