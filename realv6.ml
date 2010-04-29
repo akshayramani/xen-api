@@ -100,7 +100,7 @@ let initialise address port edition =
 			in
 			let combinations =
 				let last = last_product, last_edition in
-				let all = ["XDS", "ENT"; "XDS", "PLT"; "XDT", "ENT"; "XDT", "PLT"] in
+				let all = ["XDS", "ENT"; "XDS", "PLT"; "XDT", "ENT"; "XDT", "PLT"; "XDS", "STD"; "XDT", "STD"] in
 				(* If we recently found a XD license, first try the same again for the
 				 * LPE grace functionality to work: move the last hit to the head of 
 				 * the queue. *)
