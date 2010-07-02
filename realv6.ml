@@ -158,7 +158,7 @@ let initialise address port edition =
 				ignore (V6alert.send_alert Api_messages.v6_comm_error "The license could not be checked out, because the license server could not be reached at the given address/port. Please check the connection details, and verify that the license server is running.");
 				"declined", Int32.of_int (-1)
 		else (* edition <> "XD" *)
-			let v6product = "CXS" in
+			let v6product = "CXSTP" in
 			if Lpe.start address (Int32.to_int port) v6product edition Xapi_globs.dbv then begin
 				let result = Lpe.get_license () in
 				match result with
