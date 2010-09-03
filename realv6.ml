@@ -47,7 +47,7 @@ let initialise address port edition =
 	let read_last_check_data () =
 		try
 			(* file should contain last_checkout_time and last_days_to_expire *)
-			let data = Unixext.read_whole_file_to_string ts_file in
+			let data = Unixext.string_of_file ts_file in
 			let x = String.rindex data '\n' in
 			let checksum = String.sub_to_end data (x + 1) in
 			let data = String.sub data 0 x in
