@@ -1,0 +1,72 @@
+V6D = v6d
+
+DESTDIR=$(getenv DESTDIR, $(ROOT)/dist/staging)
+DEBUGDIST=$(DESTDIR)/opt/xensource/debug
+LIBEXEC=$(DESTDIR)/opt/xensource/libexec
+
+IPROG=install -m 755 -o root -g root
+IDATA=install -m 644 -o root -g root
+IEXE=install -m 755 -o root -g root
+
+OCAMLPACKS = xapi-client threads
+
+OCAMLFLAGS = -g -dtypes -thread -warn-error F
+OCAMLCFLAGS = -g
+OCAMLOPTFLAGS = -ccopt -fPIC
+CFLAGS=-g -O2 -DPLATFORM_UNIX -DOS_LINUX -g -DDEBUG -I$(shell ocamlc -where)
+USE_OCAMLFIND = true
+NATIVE_ENABLED = true
+BYTE_ENABLED = $(not $(NATIVE_ENABLED))
+OCAMLDEP_MODULES_ENABLED = false
+
+if $(NATIVE_ENABLED)
+	CFLAGS+=-DCOMPILE_NATIVE
+	export
+
+LDFLAGS+=-static
+
+# LPE
+
+OCAML_CLIBS = lpe_stubs
+LPE = /distfiles/lpe/253868
+LPE_LIB = $(LPE)/sdk/i686/lib/debug
+LPE_INCLUDE = $(LPE)/sdk/include
+FLEXLM = $(LPE)/flexlm
+
+OCAMLINCLUDES = $(LPE_INCLUDE) $(FLEXLM)/include
+
+INCLUDES += $(LPE_INCLUDE) $(FLEXLM)/include
+
+OCAML_LINK_FLAGS += $(LPE_LIB)/libLicHelper.a $(LPE_LIB)/libMFLic.a $(LPE_LIB)/libVDHelper.a $(LPE_LIB)/libaphelper.a $(LPE_LIB)/libProdLic.a $(LPE_LIB)/libreglib.a $(FLEXLM)/lib/lm_new.o $(FLEXLM)/lib/liblmgr.a $(FLEXLM)/lib/libcrvs.a $(FLEXLM)/lib/libsb.a $(FLEXLM)/lib/libnoact.a -cclib "-lpthread -ldb -lm -lc"
+
+# The daemon
+
+FILES = lpe v6alert realv6 v6d
+
+StaticCLibrary(lpe_stubs, lpe_stubs)
+OCamlLibraryClib(lpe, lpe, lpe_stubs)
+OCamlProgram($(V6D), $(FILES))
+#OCamlDocProgram($(V6D), $(FILES))
+
+# Test program
+
+#BYTE_ENABLED = true
+#OCamlLibraryClib(lpe_test, lpe_test, lpe_stubs)
+#.PHONY: test-lpe
+#test-lpe: v6d lpe_test.cma
+#	$(OCAMLFIND) $(OCAMLMKTOP) -o lpe_test_top lpe_test.cma
+
+.DEFAULT: $(V6D)
+
+.PHONY: install
+install: $(V6D)
+	mkdir -p $(LIBEXEC)
+	$(IPROG) $(V6D) $(LIBEXEC)/v6d
+
+.PHONY: sdk-install
+sdk-install: install
+
+.PHONY: clean
+clean:
+	rm -f *.cmi *.cmx *.cmo *.a *.cma *.cmxa *.run *.opt *.annot *.o *.spot *.spit *.omc v6d
+
