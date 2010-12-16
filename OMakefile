@@ -63,8 +63,15 @@ install: $(V6D)
 	mkdir -p $(LIBEXEC)
 	$(IPROG) $(V6D) $(LIBEXEC)/v6d
 
-.PHONY: sdk-install
-sdk-install: install
+RPM_SPECSDIR=/usr/src/redhat/SPECS
+RPM_SOURCEDIR=/usr/src/redhat/SOURCES
+
+$(RPM_SOURCEDIR)/v6-0.tar.bz2:
+	hg archive -p v6-0 -t tbz2 $(RPM_SOURCEDIR)/v6-0.tar.bz2
+
+.PHONY: rpm
+rpm: $(RPM_SPECSDIR)/v6.spec $(RPM_SOURCEDIR)/v6-0.tar.bz2
+	rpmbuild -ba $(RPM_SPECSDIR)/v6.spec
 
 .PHONY: clean
 clean:
