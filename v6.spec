@@ -42,5 +42,6 @@ rm -rf $RPM_BUILD_ROOT
 %files v6d
 %defattr(-,root,root,-)
 /opt/xensource/libexec/v6d
+/etc/rc.d/init.d/v6d
 
 %changelog
