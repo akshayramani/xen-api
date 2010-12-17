@@ -17,11 +17,11 @@ BuildRequires: ocaml, ocaml-findlib, ocaml-camlp4, ocaml-type-conv, ocaml-getopt
 XenServer licensing daemon.
 
 %package v6d
-Summary: The licensing daemon
+Summary: The Citrix licensing daemon
 Group: System/Hypervisor
 
 %description v6d
-This package contains the "real" licensing daemon, required by xapi at runtime.
+This package contains the Citrix XenServer licensing daemon, required by xapi at runtime.
 
 %prep 
 %setup -q
@@ -35,6 +35,9 @@ DESTDIR=$RPM_BUILD_ROOT omake install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
+
+%post v6d
+[ ! -x /sbin/chkconfig ] || chkconfig --add v6d
 
 %files v6d
 %defattr(-,root,root,-)
