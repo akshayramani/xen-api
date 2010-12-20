@@ -62,6 +62,7 @@ OCamlProgram($(V6D), $(FILES))
 install: $(V6D)
 	mkdir -p $(LIBEXEC)
 	$(IPROG) $(V6D) $(LIBEXEC)/v6d
+	mkdir -p $(DESTDIR)/etc/rc.d/init.d
 	$(IPROG) init.d-v6d $(DESTDIR)/etc/rc.d/init.d/v6d
 
 RPM_SPECSDIR=/usr/src/redhat/SPECS
