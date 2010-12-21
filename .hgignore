@@ -37,3 +37,4 @@ TAGS
 dist
 mk/.*
 v6d
+v6testd

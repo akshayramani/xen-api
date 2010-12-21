@@ -1,4 +1,5 @@
 V6D = v6d
+V6TESTD = v6testd
 
 DESTDIR=$(getenv DESTDIR, $(ROOT)/dist/staging)
 DEBUGDIST=$(DESTDIR)/opt/xensource/debug
@@ -25,6 +26,11 @@ if $(NATIVE_ENABLED)
 
 LDFLAGS+=-static
 
+# The "fake" daemon
+
+TESTFILES = fakev6 v6testd
+OCamlProgram($(V6TESTD), $(TESTFILES))
+
 # LPE
 
 OCAML_CLIBS = lpe_stubs
@@ -39,7 +45,7 @@ INCLUDES += $(LPE_INCLUDE) $(FLEXLM)/include
 
 OCAML_LINK_FLAGS += $(LPE_LIB)/libLicHelper.a $(LPE_LIB)/libMFLic.a $(LPE_LIB)/libVDHelper.a $(LPE_LIB)/libaphelper.a $(LPE_LIB)/libProdLic.a $(LPE_LIB)/libreglib.a $(FLEXLM)/lib/lm_new.o $(FLEXLM)/lib/liblmgr.a $(FLEXLM)/lib/libcrvs.a $(FLEXLM)/lib/libsb.a $(FLEXLM)/lib/libnoact.a -cclib "-lpthread -ldb -lm -lc"
 
-# The daemon
+# The "real" daemon
 
 FILES = lpe v6alert realv6 v6d
 
@@ -56,7 +62,7 @@ OCamlProgram($(V6D), $(FILES))
 #test-lpe: v6d lpe_test.cma
 #	$(OCAMLFIND) $(OCAMLMKTOP) -o lpe_test_top lpe_test.cma
 
-.DEFAULT: $(V6D)
+.DEFAULT: $(V6D) $(V6TESTD)
 
 .PHONY: install
 install: $(V6D)
@@ -65,17 +71,14 @@ install: $(V6D)
 	mkdir -p $(DESTDIR)/etc/rc.d/init.d
 	$(IPROG) init.d-v6d $(DESTDIR)/etc/rc.d/init.d/v6d
 
-RPM_SPECSDIR=/usr/src/redhat/SPECS
-RPM_SOURCEDIR=/usr/src/redhat/SOURCES
-
-$(RPM_SOURCEDIR)/v6-0.tar.bz2:
-	hg archive -p v6-0 -t tbz2 $(RPM_SOURCEDIR)/v6-0.tar.bz2
-
-.PHONY: rpm
-rpm: $(RPM_SPECSDIR)/v6.spec $(RPM_SOURCEDIR)/v6-0.tar.bz2
-	rpmbuild -ba $(RPM_SPECSDIR)/v6.spec
+.PHONY: install-test
+install-test: $(V6TESTD)
+	mkdir -p $(LIBEXEC)
+	$(IPROG) $(V6TESTD) $(LIBEXEC)/v6d
+	mkdir -p $(DESTDIR)/etc/rc.d/init.d
+	$(IPROG) init.d-v6d $(DESTDIR)/etc/rc.d/init.d/v6d
 
 .PHONY: clean
 clean:
-	rm -f *.cmi *.cmx *.cmo *.a *.cma *.cmxa *.run *.opt *.annot *.o *.spot *.spit *.omc v6d
+	rm -f *.cmi *.cmx *.cmo *.a *.cma *.cmxa *.run *.opt *.annot *.o *.spot *.spit *.omc v6d v6test
 

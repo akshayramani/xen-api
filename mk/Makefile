@@ -2,24 +2,29 @@
 include $(B_BASE)/common.mk
 include $(B_BASE)/rpmbuild.mk
 
-REPO   = $(call hg_loc,v6)
-OUTPUT = $(MY_MAIN_PACKAGES)/v6.tar.bz2
-RPM_BINDIR=$(RPM_RPMSDIR)/$(DOMAIN0_ARCH_OPTIMIZED)
+REPO = $(call hg_loc,v6)
+RPM_BINDIR = $(RPM_RPMSDIR)/$(DOMAIN0_ARCH_OPTIMIZED)
 
 .PHONY: build
 build: srpm $(MY_SOURCES)/MANIFEST
-	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bb $(RPM_SPECSDIR)/v6.spec
-	mkdir -p $(MY_MAIN_PACKAGES)
-	cp $(RPM_RPMSDIR)/$(DOMAIN0_ARCH_OPTIMIZED)/v6-v6d-*.rpm $(MY_MAIN_PACKAGES)
+	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bb $(RPM_SPECSDIR)/v6d.spec
+	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bb $(RPM_SPECSDIR)/v6testd.spec
+	mkdir -p $(MY_OUTPUT_DIR) $(MY_MAIN_PACKAGES)
+	cp $(RPM_BINDIR)/v6d-*.rpm $(MY_MAIN_PACKAGES)
+	cp $(RPM_BINDIR)/v6testd-0-0.i686.rpm $(MY_OUTPUT_DIR)/v6-test.rpm
+	cp $(RPM_BUILDDIR)/v6testd-0/v6testd $(MY_OUTPUT_DIR)
 	# Remove XCP's v6d RPM from the api component
 	rm -f $(PROJECT_OUTPUTDIR)/api/PACKAGES.main/xapi-v6d*.rpm
 
 .PHONY: srpm
 srpm:
 	mkdir -p $(RPM_SRPMSDIR) $(RPM_SPECSDIR) $(RPM_SOURCESDIR) $(RPM_RPMSDIR)
-	hg archive -p v6-0 -t tbz2 $(RPM_SOURCESDIR)/v6-0.tar.bz2
-	install ../v6.spec $(RPM_SPECSDIR)
-	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bs $(RPM_SPECSDIR)/v6.spec
+	hg archive -p v6d-0 -t tbz2 $(RPM_SOURCESDIR)/v6d-0.tar.bz2
+	hg archive -p v6testd-0 -t tbz2 $(RPM_SOURCESDIR)/v6testd-0.tar.bz2
+	install ../v6d.spec $(RPM_SPECSDIR)
+	install ../v6testd.spec $(RPM_SPECSDIR)
+	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bs $(RPM_SPECSDIR)/v6d.spec
+	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bs $(RPM_SPECSDIR)/v6testd.spec
 
 $(MY_SOURCES)/MANIFEST: $(MY_SOURCES_DIRSTAMP)
 	rm -f $@
