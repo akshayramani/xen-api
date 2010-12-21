@@ -12,7 +12,7 @@ build: srpm $(MY_SOURCES)/MANIFEST
 	mkdir -p $(MY_MAIN_PACKAGES)
 	cp $(RPM_RPMSDIR)/$(DOMAIN0_ARCH_OPTIMIZED)/v6-v6d-*.rpm $(MY_MAIN_PACKAGES)
 	# Remove XCP's v6d RPM from the api component
-	rm -f /output/api/PACKAGES.main/xapi-v6d*.rpm
+	rm -f $(PROJECT_OUTPUTDIR)/api/PACKAGES.main/xapi-v6d*.rpm
 
 .PHONY: srpm
 srpm:
