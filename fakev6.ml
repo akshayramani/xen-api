@@ -15,12 +15,34 @@
 module D=Debug.Debugger(struct let name="v6api" end)
 open D
 
-let initialise address port edition =
-	("real", Int32.of_int (-1))
+open Edition
+let supported_editions = [Free; Advanced; Enterprise; Enterprise_xd; Platinum]
+
+let apply_edition edition additional_params =
+	let edition' = Edition.of_string edition in
+	if List.mem edition' supported_editions then begin
+		let name = Edition.to_marketing_name edition' in
+		(* define "never" as 01-01-2030 *)
+		let start_of_epoch = Unix.gmtime 0. in
+		let never, _ = Unix.mktime {start_of_epoch with Unix.tm_year = 130} in
+		let license =
+			{
+				(License.default ()) with
+				License.sku = edition;
+				License.sku_marketing_name = name;
+				License.expiry = never;
+			}
+		in
+		edition, Edition.to_features edition', License.to_assoc_list license
+	end else
+		failwith "unknown edition"
 		
-let shutdown () =
-	debug "shutdown";
-	true
+let get_editions () =
+	List.map (fun e -> Edition.to_string e, Edition.to_marketing_name e,
+		Edition.to_short_string e, Edition.to_int e) supported_editions
+
+let get_version () =
+	V6globs.dbv
 
 let reopen_logs () =
 	try
@@ -29,4 +51,4 @@ let reopen_logs () =
 		debug "Logfiles reopened";
 		true
 	with _ -> false
-	  
+

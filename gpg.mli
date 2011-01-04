@@ -12,18 +12,10 @@
  * GNU Lesser General Public License for more details.
  *)
 
-(** An example implementation of a licensing service which always returns "real" 
-    licenses that never expire. *)
+exception InvalidSignature
 
-(** Obtain a license *)
-val apply_edition : string -> (string * string) list ->
-	string * Features.feature list * (string * string) list
+val with_signed_cleartext: string -> (string option -> Unix.file_descr -> 'a) -> 'a
 
-(** Release the license *)
-val get_editions : unit -> (string * string * string * int) list
+val with_detached_signature: string -> string -> Int64.t -> (string option -> Unix.file_descr -> 'a) -> 'a
 
-val get_version : unit -> string
-
-(** Close and re-open the log file *)
-val reopen_logs : unit -> bool
-
+val simple_checksum: string -> string

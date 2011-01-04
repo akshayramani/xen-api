@@ -7,10 +7,15 @@ to handle the communication with the license server. *)
 val _proprietary_code_marker : string
 (** Citrix proprietary code *)
 
-val initialise : string -> int32 -> string -> string * int32
 (** Obtain a license *)
-val shutdown : unit -> bool
+val apply_edition : string -> (string * string) list ->
+	string * Features.feature list * (string * string) list
+
 (** Release the license *)
-val reopen_logs : unit -> bool
+val get_editions : unit -> (string * string * string * int) list
+
+val get_version : unit -> string
+
 (** Close and re-open the log file *)
+val reopen_logs : unit -> bool
 
