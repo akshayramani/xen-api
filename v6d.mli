@@ -3,8 +3,8 @@
 (** Citrix proprietary code *)
 val _proprietary_code_marker : string
 
-(** Instatiate real v6 licensing daemon XML/RPC handler *)
+(** Instantiate real v6 licensing daemon RPC handler *)
 module P : sig 
-	(** Process an XML/RPC call *)
-	val process : XMLRPC.xmlrpc -> XMLRPC.xmlrpc
+	(** Process an RPC call *)
+	val process : Rpc.call -> Rpc.response
 end
