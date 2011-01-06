@@ -38,8 +38,11 @@ val to_short_string : edition -> string
 (** Convert an {!edition} to its marketing name. *)
 val to_marketing_name : edition -> string
 
-(** Get the list of {!feature}s enabled for a given {!edition}. *)
+(** Get the list of {!Feature.feature}s enabled for a given {!edition}. *)
 val to_features : edition -> Features.feature list
+
+(** Get the list of {!Additional_feature}s enabled for a given {!edition}. *)
+val to_additional_features : edition -> Additional_features.feature list
 
 (** Provides a total order. *)
 val to_int : edition -> int

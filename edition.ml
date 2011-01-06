@@ -12,6 +12,7 @@
  *)
 
 open Features
+open Additional_features
 
 (* Editions definitions *)
 
@@ -50,16 +51,27 @@ let to_marketing_name = function
 (* Editions to features *)
 
 let free_features = [VLAN; QoS; Shared_storage; Pooling; Marathon; Connection]
-let advanced_features = HA :: Email :: Performance :: DMC :: Vswitch_controller :: CPU_masking :: No_nag_dialog :: No_platform_filter :: free_features
-let enterprise_features = Netapp :: Equalogic :: WLB :: RBAC :: Checkpoint :: StorageLink :: advanced_features
-let platinum_features = VMPR :: Lab :: Stage :: StorageLink_site_recovery :: enterprise_features
+let advanced_features = HA :: Email :: Performance :: DMC :: CPU_masking :: No_nag_dialog :: No_platform_filter :: free_features
+let enterprise_features = Netapp :: Equalogic :: WLB :: RBAC :: Checkpoint :: advanced_features
+let platinum_features = VMPR :: enterprise_features
+
+let additional_free_features = []
+let additional_advanced_features = Vswitch_controller :: additional_free_features
+let additional_enterprise_features = StorageLink :: additional_advanced_features
+let additional_platinum_features = Lab :: Stage :: StorageLink_site_recovery :: additional_enterprise_features
 
 let to_features = function
 	| Free -> free_features
 	| Advanced -> advanced_features
 	| Enterprise | Enterprise_xd -> enterprise_features
 	| Platinum -> platinum_features
-
+	
+let to_additional_features = function
+	| Free -> additional_free_features
+	| Advanced -> additional_advanced_features
+	| Enterprise | Enterprise_xd -> additional_enterprise_features
+	| Platinum -> additional_platinum_features
+	
 let to_int = function
 	| Platinum -> 30
 	| Enterprise | Enterprise_xd -> 20
@@ -71,4 +83,4 @@ let equal e0 e1 =
 	
 let min l =
 	List.fold_left (fun m e -> if to_int e < to_int m then e else m) Platinum l
-	
+

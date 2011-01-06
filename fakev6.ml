@@ -128,7 +128,8 @@ let apply_edition edition additional =
 			get_license edition default_license
 	in
 	new_edition, Edition.to_features (Edition.of_string new_edition),
-		(License.to_assoc_list new_license) @ V6globs.early_release
+		(License.to_assoc_list new_license) @ V6globs.early_release @
+		(Additional_features.to_assoc_list (Edition.to_additional_features (Edition.of_string new_edition)))
 
 let get_editions () =
 	List.map (fun e -> Edition.to_string e, Edition.to_marketing_name e,
