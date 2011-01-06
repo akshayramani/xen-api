@@ -28,7 +28,7 @@ LDFLAGS+=-static
 
 # The "fake" daemon
 
-TESTFILES = edition license v6globs fakev6 v6testd
+TESTFILES = edition license license_file gpg v6globs fakev6 v6testd
 OCamlProgram($(V6TESTD), $(TESTFILES))
 
 # LPE
