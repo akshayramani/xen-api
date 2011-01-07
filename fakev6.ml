@@ -33,7 +33,8 @@ let apply_edition edition additional =
 			let current_edition = if current_edition = "" then "free" else current_edition in
 			match edition' with
 			| Edition.Free ->
-				if Edition.of_string current_edition = Edition.Free then begin
+				if startup || List.mem_assoc "license_file" additional then begin
+					info "Attempting to apply 'free' edition activation key.";
 					let license_file =
 						if List.mem_assoc "license_file" additional then
 							List.assoc "license_file" additional
@@ -45,45 +46,50 @@ let apply_edition edition additional =
 						let new_license = License_file.do_parse_and_validate license_file in
 						if license_file <> !License_file.filename then
 							Unix.rename license_file !License_file.filename;
-						info "Holding Free Edition license with expiry date %s."
+						info "Holding 'free' edition license with expiry date %s."
 							(Date.to_string (Date.of_float new_license.License.expiry));
 						new_license
-					with e ->
-						if startup then match e with
-							| License_file.License_expired l -> l (* keep expired license *)
-							| _ ->
-								(* activation file does not exist or is invalid *)
-								if current_license.License.expiry < default_license.License.expiry then begin
-									info "Existing free license with expiry date %s still in effect."
-										(Date.to_string (Date.of_float current_license.License.expiry));
-									{
-										default_license with
-										License.expiry = current_license.License.expiry
-									}
-								end else begin
-									info "Generating Free Edition grace license, which needs to be activated in 30 days.";
-									default_license
-								end
-						else match e with
-							| License_file.License_expired l ->
-								raise (V6errors.Error(V6errors.license_expired, []))
-							| License_file.License_file_deprecated ->
-								raise (V6errors.Error(V6errors.license_file_deprecated, []))
-							| e ->
-								begin
-									debug "Exception processing license: %s" (Printexc.to_string e);
-									raise (V6errors.Error(V6errors.license_processing_error, []))
-								end
+					with 
+					| License_file.License_expired l when startup -> l (* keep expired license *)
+					| _ when startup ->
+						(* activation file does not exist or is invalid *)
+						if current_license.License.expiry < default_license.License.expiry then begin
+							info "Existing 'free' license with expiry date %s still in effect."
+								(Date.to_string (Date.of_float current_license.License.expiry));
+							{
+								default_license with
+								License.expiry = current_license.License.expiry
+							}
+						end else begin
+							info "Generating 'free' edition grace license, which needs to be activated in 30 days.";
+							default_license
+						end
+					| License_file.License_expired l ->
+						raise (V6errors.Error(V6errors.license_expired, []))
+					| License_file.License_file_deprecated ->
+						raise (V6errors.Error(V6errors.license_file_deprecated, []))
+					| e ->
+						begin
+							debug "Exception processing license: %s" (Printexc.to_string e);
+							raise (V6errors.Error(V6errors.license_processing_error, []))
+						end
 					end
+				end else if Edition.of_string current_edition = Edition.Free then begin
+					info "The host's edition is already 'free', and not applying a new activation key or starting xapi. No change.";
+					current_license
 				end else begin
-					info "Downgrading from %s to free edition." current_edition;
+					info "Downgrading from '%s' to 'free' edition." current_edition;
 					(* delete activation key, if it exists *)
 					Unixext.unlink_safe !License_file.filename;
 					default_license
 				end
 			| e ->
+				(* Ensure we are not trying to apply an old-style license file here. *)
+				if List.mem_assoc "license_file" additional then
+					raise (V6errors.Error (V6errors.activation_while_not_free, []));
+
 				if Edition.of_string current_edition = Edition.Free then
-					info "Upgrading from free to %s edition..." edition
+					info "Upgrading from 'free' to '%s' edition..." edition
 				else
 					info "(Re)applying %s license..." edition;
 
@@ -116,11 +122,8 @@ let apply_edition edition additional =
 		let edition = if edition = "" then Edition.to_string Edition.Free else edition in
 		try
 			let current_license = License.of_assoc_list additional in
-			if List.mem_assoc "license_file" additional && edition <> Edition.to_string Edition.Free then
-				raise (V6errors.Error (V6errors.activation_while_not_free, []))
-			else
-				edition,
-				get_license edition current_license
+			edition,
+			get_license edition current_license
 		with License.Missing_license_param _ ->
 			(* No current license params: first boot -> give a default license.
 			 * If an activation key exists, this will used. *)
