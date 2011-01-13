@@ -379,22 +379,28 @@ let apply_edition edition additional =
 					(* delete upgrade-grace file, if it exists *)
 					Unixext.unlink_safe Xapi_globs.upgrade_grace_file;
 					let name = Edition.to_marketing_name edition' in
-					let basic =
+					if license = "grace" then begin
+						Grace_retry.start edition;
+						let expires =
+							if Xapi_fist.reduce_grace_period () then
+								now +. (15. *. 60.)
+							else
+								expires
+						in
+						{
+							default_license with
+							License.sku = edition;
+							License.sku_marketing_name = name;
+							License.expiry = expires;
+							License.grace = "regular grace";
+						}
+					end else
 						{
 							default_license with
 							License.sku = edition;
 							License.sku_marketing_name = name;
 							License.expiry = expires
 						}
-					in
-					if license = "grace" then begin
-						Grace_retry.start edition;
-						{
-							basic with
-							License.grace = "regular grace"
-						}
-					end else
-						basic
 				end else if edition = current_edition && upgrade_grace then begin
 					info "No %s license is available, but we are still in the upgrade grace period." current_edition;
 					{current_license with License.grace = "upgrade grace"}
