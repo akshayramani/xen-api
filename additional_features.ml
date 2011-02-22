@@ -9,6 +9,8 @@ type feature =
 	| Stage
 	| StorageLink
 	| StorageLink_site_recovery
+	| Web_self_service
+	| Web_self_service_manager
 
 (* The names of these flags _must_ start with "restrict_" *)
 let keys_of_features =
@@ -18,6 +20,8 @@ let keys_of_features =
 		Stage, "restrict_stage";
 		StorageLink, "restrict_storagelink";
 		StorageLink_site_recovery, "restrict_storagelink_site_recovery";
+		Web_self_service, "restrict_web_selfservice";
+		Web_self_service_manager, "restrict_web_selfservice_manager";
 	]
 
 let string_of_feature f =

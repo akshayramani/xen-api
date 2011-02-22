@@ -57,15 +57,15 @@ let platinum_features = VMPR :: enterprise_features
 
 let additional_free_features = []
 let additional_advanced_features = Vswitch_controller :: additional_free_features
-let additional_enterprise_features = StorageLink :: additional_advanced_features
-let additional_platinum_features = Lab :: Stage :: StorageLink_site_recovery :: additional_enterprise_features
+let additional_enterprise_features = StorageLink :: Web_self_service :: additional_advanced_features
+let additional_platinum_features = Lab :: Stage :: StorageLink_site_recovery :: Web_self_service_manager :: additional_enterprise_features
 
 let to_features = function
 	| Free -> free_features
 	| Advanced -> advanced_features
 	| Enterprise | Enterprise_xd -> enterprise_features
 	| Platinum -> platinum_features
-	
+
 let to_additional_features = function
 	| Free -> additional_free_features
 	| Advanced -> additional_advanced_features
@@ -80,7 +80,7 @@ let to_int = function
 
 let equal e0 e1 =
 	to_int e0 = to_int e1
-	
+
 let min l =
 	List.fold_left (fun m e -> if to_int e < to_int m then e else m) Platinum l
 

@@ -8,7 +8,9 @@ type feature =
 	| Lab                          (** Enable use of Lab Manager *)
 	| Stage                        (** Enable use of Stage Manager *)
 	| StorageLink                  (** Enable use of StorageLink *)
-	| StorageLink_site_recovery    (** Enable use of StorageLink Site Recovery*)
+	| StorageLink_site_recovery    (** Enable use of StorageLink Site Recovery *)
+	| Web_self_service             (** Enable use of Web Self-Service *)
+	| Web_self_service_manager     (** Enable use of Web Self-Service Manager *)
 
 (** The list of all known features. *)
 val all_features : feature list
