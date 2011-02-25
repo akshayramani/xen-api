@@ -30,7 +30,9 @@ let allowed_gpg_checksum =
 	  "08690c3d1a43d920a1b278cb57ed97ba"; (* centos53/54 version *)
 	  "f52886b87126c06d419f408e32268b4e"; (* 64 bit product version *)
 	  "aa27ac0b0ebfd1278bf2386c343053db"; (* debian developer version *)
-	  "044d1327ea42400ac590195e0ec1e7e6"; ]
+	  "044d1327ea42400ac590195e0ec1e7e6";
+	  "a267af68c53f5d998b982235bbccb01e"; (* centos55 update of 15 Feb 2011 *)
+	]
 
 exception InvalidSignature
 
