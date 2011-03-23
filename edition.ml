@@ -53,7 +53,7 @@ let to_marketing_name = function
 let free_features = [VLAN; QoS; Shared_storage; Pooling; Marathon; Connection; IntelliCache]
 let advanced_features = HA :: Email :: Performance :: DMC :: CPU_masking :: No_nag_dialog :: No_platform_filter :: free_features
 let enterprise_features = Netapp :: Equalogic :: WLB :: RBAC :: Checkpoint :: GPU :: advanced_features
-let platinum_features = VMPR :: enterprise_features
+let platinum_features = DR :: VMPR :: enterprise_features
 
 let additional_free_features = []
 let additional_advanced_features = Vswitch_controller :: additional_free_features
