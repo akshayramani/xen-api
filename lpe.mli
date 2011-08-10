@@ -45,3 +45,6 @@ val license_check: string -> int -> string -> string -> string -> checkout_resul
 (** Returns the number of hours till the expiry of a grace license, if the LPE
  *  is running. This result is only useful when holding a grace license. *)
 val get_grace_expiry: string -> int option
+
+(** the SA date to a file *)
+val write_sa_date: unit -> unit

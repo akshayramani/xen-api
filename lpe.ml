@@ -61,7 +61,7 @@ let monitor_callbacks () =
 	let pin, pout = Unix.pipe () in
 	set_pipe (Unixext.int_of_file_descr pout);
 	let s = String.create 1 in
-	let rec receive () = 
+	let rec receive () =
 		try
 			Unixext.really_read pin s 0 1;
 			begin match s with
@@ -104,11 +104,11 @@ let init () =
 
 	(* initialise state *)
 	reset_state ();
-	
+
 	(* set cache directory for LPE *)
 	Unixext.mkdir_safe V6globs.v6_cache_dir 0o755;
 	alloc_and_set_cache_dir V6globs.v6_cache_dir;
-	
+
 	(* set up callback thread *)
 	ignore (Thread.create monitor_callbacks ())
 
@@ -123,6 +123,41 @@ let start address port product edition dbv =
 		state := Some {started = true; address = address; port = port; product = product;
 			edition = edition; dbv = dbv; profile = ""; licensed = false};
 	result
+
+
+let write_sa_date () =
+	let date_str_len = 36 in (* We read 9 chars of 4 bytes each *)
+	let read_last_n fn n =
+		let fd = Unix.openfile fn [Unix.O_RDONLY] 0 in
+		let buff = String.create n in
+		begin
+			try
+				ignore (Unix.lseek fd (-n) Unix.SEEK_END) ;
+				let br = Unix.read fd buff 0 n in
+				if br < n
+				then failwith "Could not read file"
+			with exn ->
+				Unix.close fd ;
+				raise exn
+		end ;
+		Unix.close fd ;
+		buff in
+	let string_filter_step str n =
+		let out = String.create ((String.length str) / n) in
+		let rec loop i j =
+			if (j < String.length str) then begin
+				String.set out i (String.get str j) ;
+				loop (i+1) (j+n)
+			end in
+		loop 0 0 ;
+		out in
+	try
+		let date_str = read_last_n V6globs.lpe_ini date_str_len in
+		Unixext.write_string_to_file
+			V6globs.sa_date_filename
+			(string_filter_step date_str 4)
+	with _ ->
+		debug "Caught exception in write_sa_date; SA date not written to file."
 
 
 let get_license () =
@@ -167,13 +202,15 @@ let get_license () =
 					debug "Got a grace license";
 					Granted_grace, None, true
 		in
+		debug "Writing SA date to file";
+		write_sa_date ();
 		state := Some {s with profile = profile; licensed = licensed};
 		Some result, expiry
-	| _ -> 
+	| _ ->
 		debug "Cannot get license: LPE is not running";
 		None, None
-		
-		
+
+
 let release_license () =
 	match !state with
 	| Some ({licensed = true} as s) ->
@@ -205,10 +242,10 @@ let component_licensed component =
 		| Up, false ->
 			debug "Component NOT licensed";
 			Rejected
-		| Down, true -> 
+		| Down, true ->
 			debug "Component is GRACE licensed";
 			Granted_grace
-		| Down, false -> 
+		| Down, false ->
 			debug "Communication problem";
 			Unreachable
 		| _ -> (* Pattern will never match, as server cannot be Unknown here *)
@@ -217,8 +254,8 @@ let component_licensed component =
 	| _ ->
 		debug "Cannot check status: LPE is not running";
 		Unreachable
-		
-	
+
+
 let stop () =
 	match !state with
 	| Some {started = true} ->
@@ -226,12 +263,14 @@ let stop () =
 		debug "Stopping LPE";
 		let result = stop_c () in
 		reset_state ();
+		debug "Writing SA date to file";
+		write_sa_date ();
 		result
 	| _ ->
 		debug "Cannot stop LPE as it is not running";
 		reset_state ();
 		false
-		
+
 
 let license_check address port product edition dbv =
 	debug "Checking for %s %s" product edition;
@@ -240,8 +279,8 @@ let license_check address port product edition dbv =
 	| 2 -> debug "License present"; Granted_real
 	| 1 -> debug "License not present"; Rejected
 	| 0 | _ -> debug "Server unreachable"; Unreachable
-	
-	
+
+
 let get_grace_expiry product =
 	match !state with
 	| Some {started = true} ->

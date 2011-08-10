@@ -26,7 +26,7 @@ let shutdown () =
 let initialise address port edition =
 	debug "initialise (address = %s, port = %d, edition = %s)"
 		address (Int32.to_int port) edition;
-		
+
 	(* check edition  *)
 	if not (List.mem edition ["STD"; "ADV"; "ENT"; "PLT"; "XD"]) then
 		failwith "unknown edition";
@@ -86,7 +86,7 @@ let initialise address port edition =
 				(* This function should work with all license types *)
 				let result = Lpe.license_check address (Int32.to_int port) p e V6globs.dbv in
 				match result with
-				| Lpe.Granted_real -> 
+				| Lpe.Granted_real ->
 					write_last_check_data p e;
 					Lpe.Granted_real
 				| Lpe.Unreachable ->
@@ -102,7 +102,7 @@ let initialise address port edition =
 				let last = last_product, last_edition in
 				let all = ["XDS", "ENT"; "XDS", "PLT"; "XDT", "ENT"; "XDT", "PLT"; "XDS", "STD"; "XDT", "STD"] in
 				(* If we recently found a XD license, first try the same again for the
-				 * LPE grace functionality to work: move the last hit to the head of 
+				 * LPE grace functionality to work: move the last hit to the head of
 				 * the queue. *)
 				if days_since_last_checkout < 30 && List.mem last all then
 					last :: List.filter (fun c -> c <> last) all
@@ -179,7 +179,7 @@ let initialise address port edition =
 					let grace_expiry = Lpe.get_grace_expiry V6globs.v6product in
 					begin match grace_expiry with
 					| Some hours_left ->
-						let days_to_expire = 
+						let days_to_expire =
 							(* round up to avoid getting a 0-day license *)
 							if hours_left mod 24 = 0 then
 								hours_left / 24
@@ -220,7 +220,7 @@ let initialise address port edition =
 				V6alert.send_v6_comm_error ();
 				"declined", Int32.of_int (-1)
 			end
-	in	
+	in
 	match !state with
 	| Some s ->
 		if s.edition = edition && s.licensed = "real" then begin
@@ -347,13 +347,13 @@ let apply_edition edition additional =
 						List.assoc "port" additional
 					with Not_found ->
 						raise (V6errors.Error (V6errors.missing_connection_details, []))
-				in		
+				in
 				let license, days_to_expire = initialise address (Int32.of_string port) (v6edition e) in
 
 				(* define "never" as 01-01-2030 *)
 				let start_of_epoch = Unix.gmtime 0. in
 				let never, _ = Unix.mktime {start_of_epoch with Unix.tm_year = 130} in
-	
+
 				(* set expiry date *)
 				let now = Unix.time () in
 				let expires =
@@ -372,7 +372,7 @@ let apply_edition edition additional =
 							if fist_date < expires then fist_date else expires
 					end
 				in
-		
+
 				let upgrade_grace = read_grace_from_file () > Unix.time () in
 				if license = "real" || license = "grace" then begin
 					info "Checked out %s %s license from license server." edition license;
@@ -433,7 +433,7 @@ let apply_edition edition additional =
 	new_edition, Edition.to_features (Edition.of_string new_edition),
 		(License.to_assoc_list new_license) @ V6globs.early_release @
 		(Additional_features.to_assoc_list (Edition.to_additional_features (Edition.of_string new_edition)))
-		
+
 let get_editions () =
 	List.map (fun e -> Edition.to_string e, Edition.to_marketing_name e,
 		Edition.to_short_string e, Edition.to_int e) supported_editions
@@ -448,4 +448,3 @@ let reopen_logs () =
 		debug "Logfiles reopened";
 		true
 	with _ -> false
-	

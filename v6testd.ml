@@ -17,4 +17,3 @@ module P = V6rpc.V6process(Fakev6)
 let _ =
 	Logs.reset_all [ "file:/var/log/v6d.log" ];
 	V6daemon.startup (fun () -> ()) P.process
-

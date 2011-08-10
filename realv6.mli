@@ -18,4 +18,3 @@ val get_version : unit -> string
 
 (** Close and re-open the log file *)
 val reopen_logs : unit -> bool
-

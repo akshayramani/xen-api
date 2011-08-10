@@ -18,3 +18,7 @@ let v6product =
 
 (* Directory in which the LPE stores its cache *)
 let v6_cache_dir = "/var/xapi/lpe-cache"
+
+(* LPE config file and SA-date storage location *)
+let lpe_ini = v6_cache_dir ^ "/LPE_LPE.ini"
+let sa_date_filename = v6_cache_dir ^ "/sadate"

@@ -148,4 +148,3 @@ let reopen_logs () =
 		debug "Logfiles reopened";
 		true
 	with _ -> false
-
