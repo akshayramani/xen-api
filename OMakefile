@@ -11,7 +11,7 @@ IEXE=install -m 755 -o root -g root
 
 OCAMLPACKS = xapi-client threads
 
-OCAMLFLAGS = -g -dtypes -thread -warn-error F
+OCAMLFLAGS = -g -dtypes -thread -warn-error +a-4-6-9-27-28-29
 OCAMLCFLAGS = -g
 OCAMLOPTFLAGS = -ccopt -fPIC
 CFLAGS=-g -O2 -DPLATFORM_UNIX -DOS_LINUX -g -DDEBUG -I$(shell ocamlc -where)

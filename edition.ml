@@ -76,7 +76,7 @@ let to_int = function
 	| Platinum -> 30
 	| Enterprise | Enterprise_xd -> 20
 	| Advanced -> 10
-	| Free | _ -> 0
+	| Free -> 0
 
 let equal e0 e1 =
 	to_int e0 = to_int e1

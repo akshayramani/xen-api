@@ -68,20 +68,26 @@ let initialise address port edition =
 			let last_product, last_edition, last_checkout_time, _, last_server = read_last_check_data () in
 			let last_checkout_delta = Unix.time () -. last_checkout_time in
 			let days_since_last_checkout = int_of_float (last_checkout_delta /. 3600. /. 24.) in
-			let check p e =
-				(* The following will not work for XDT licenses, which use the UD profile.
-				 * The LPE does not support such licenses... a different solution needs
-				 * to be found. *)
-				let xd_edition_to_component = ["ENT", "VDE"; "PLT", "VDP"] in
-				let started = Lpe.start address (Int32.to_int port) p e V6globs.dbv in
-				if started = true then
-					let c = List.assoc e xd_edition_to_component in
-					let licensed = Lpe.component_licensed c in
-					let _ = Lpe.stop () in
-					licensed
-				else
-					Lpe.Unreachable
-			in
+			(** This is a better way to check licenses, but since the
+				LPE doesn't fully support these licenses, we have to
+				resort to the new_check below. Commenting this out because
+				we want to revert to this one day, but leaving it in
+				causes a compiler warning, and we have warn-errors
+				enabled.  *)
+			(* let check p e = *)
+			(* 	(\* The following will not work for XDT licenses, which use the UD profile. *)
+			(* 	 * The LPE does not support such licenses... a different solution needs *)
+			(* 	 * to be found. *\) *)
+			(* 	let xd_edition_to_component = ["ENT", "VDE"; "PLT", "VDP"] in *)
+			(* 	let started = Lpe.start address (Int32.to_int port) p e V6globs.dbv in *)
+			(* 	if started = true then *)
+			(* 		let c = List.assoc e xd_edition_to_component in *)
+			(* 		let licensed = Lpe.component_licensed c in *)
+			(* 		let _ = Lpe.stop () in *)
+			(* 		licensed *)
+			(* 	else *)
+			(* 		Lpe.Unreachable *)
+			(* in *)
 			let new_check p e =
 				(* This function should work with all license types *)
 				let result = Lpe.license_check address (Int32.to_int port) p e V6globs.dbv in
@@ -97,6 +103,10 @@ let initialise address port edition =
 					else
 						Lpe.Unreachable
 				| Lpe.Rejected -> Lpe.Rejected
+				(* this case is impossible... *)
+				| Lpe.Granted_grace ->
+					write_last_check_data p e;
+					Lpe.Granted_grace
 			in
 			let combinations =
 				let last = last_product, last_edition in
@@ -196,7 +206,7 @@ let initialise address port edition =
 						"grace", days_to_expire
 					| _ ->
 						debug "License declined";
-						Lpe.release_license ();
+						ignore (Lpe.release_license ());
 						state := Some {edition = edition;
 									   licensed = "declined";
 									   days_to_expire = Int32.of_int (-1);
@@ -233,7 +243,7 @@ let initialise address port edition =
 				s.licensed, s.days_to_expire
 		end else begin
 			debug "Already initialised, but with different edition; shutting down first";
-			shutdown ();
+			ignore (shutdown ());
 			init_lpe ()
 		end
 	| None -> init_lpe ()
@@ -324,7 +334,7 @@ let apply_edition edition additional =
 					current_license
 				end else begin
 					info "Downgrading from '%s' to 'free' edition." current_edition;
-					shutdown ();
+					ignore (shutdown ());
 					(* delete activation key, if it exists *)
 					Unixext.unlink_safe !License_file.filename;
 					default_license
@@ -410,7 +420,7 @@ let apply_edition edition additional =
 					{current_license with License.expiry = 0.}
 				end else begin
 					error "License could not be checked out. Edition is not changed.";
-					shutdown ();
+					ignore (shutdown ());
 					raise (V6errors.Error (V6errors.license_checkout_error, [edition]))
 				end
 		with Edition.Undefined_edition e ->
