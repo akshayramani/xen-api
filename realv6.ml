@@ -414,6 +414,17 @@ let apply_edition edition additional =
 				end else if edition = current_edition && upgrade_grace then begin
 					info "No %s license is available, but we are still in the upgrade grace period." current_edition;
 					{current_license with License.grace = "upgrade grace"}
+				end else if List.mem_assoc "earlyrelease" additional then begin
+					info "Upgrade from beta: transition to GA (30-day grace license).";
+					let expiry = License.upgrade_grace_expiry () in
+					write_grace_to_file expiry;
+					V6alert.send_v6_upgrade_grace_license ();
+					let name = Edition.to_marketing_name (of_string edition) in
+					{default_license with
+						License.sku = current_edition;
+						License.sku_marketing_name = name;
+						License.expiry = expiry;
+						License.grace = "upgrade grace"}
 				end else if startup then begin
 					info "No %s license is available. License is set to 'expired' (no VMs can start)." current_edition;
 					(* expiry date 0 means 01-01-1970, so always expired *)
