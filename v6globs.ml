@@ -15,3 +15,6 @@ let v6product =
 		"CXSTP"
 	else
 		"CXS"
+
+(* Directory in which the LPE stores its cache *)
+let v6_cache_dir = "/var/xapi/lpe-cache"

@@ -3,9 +3,6 @@ let _proprietary_code_marker = "Citrix proprietary code"
 module D=Debug.Debugger(struct let name="lpe" end)
 open D
 
-(* Directory in which the LPE stores its cache *)
-let v6_cache_dir = "/var/xapi/lpe-cache"
-
 (* LPE C functions *)
 
 external set_pipe: int -> unit = "set_pipe_c"
@@ -109,8 +106,8 @@ let init () =
 	reset_state ();
 	
 	(* set cache directory for LPE *)
-	Unixext.mkdir_safe v6_cache_dir 0o755;
-	alloc_and_set_cache_dir v6_cache_dir;
+	Unixext.mkdir_safe V6globs.v6_cache_dir 0o755;
+	alloc_and_set_cache_dir V6globs.v6_cache_dir;
 	
 	(* set up callback thread *)
 	ignore (Thread.create monitor_callbacks ())

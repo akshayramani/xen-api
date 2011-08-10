@@ -15,9 +15,6 @@ type expiry_t =
 	| Permanent		(** The license is permanent and will never expire *)
 	| Days of int	(** The license will expire in the given number of days *)
 
-(** Location of the cache directory of the LPE. *)
-val v6_cache_dir : string
-
 (** Allocate memory and set up thread for callbacks.
  *  This needs to be done before starting the LPE. *)
 val init : unit -> unit

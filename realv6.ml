@@ -31,7 +31,7 @@ let initialise address port edition =
 	if not (List.mem edition ["STD"; "ADV"; "ENT"; "PLT"; "XD"]) then
 		failwith "unknown edition";
 
-	let ts_file = Lpe.v6_cache_dir ^ "/ts" in
+	let ts_file = V6globs.v6_cache_dir ^ "/ts" in
 	let hash s = string_of_int (String.fold_left (fun t c -> t + (int_of_char c)) 0 s) in
 	let write_last_check_data p e =
 		try
