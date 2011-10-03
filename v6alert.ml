@@ -15,7 +15,7 @@
 open Client
 
 let xapirpc xml =
-	let open Xmlrpcclient in
+	let open Xmlrpc_client in
 	XML_protocol.rpc ~transport:(Unix "/var/xapi/xapi") ~http:(xmlrpc ~version:"1.0" "/") xml
 
 let send_alert msg body = 
