@@ -1,5 +1,6 @@
 V6D = v6d
 V6TESTD = v6testd
+V6D_EGENERA = v6d_egenera
 
 DESTDIR=$(getenv DESTDIR, $(ROOT)/dist/staging)
 DEBUGDIST=$(DESTDIR)/opt/xensource/debug
@@ -28,7 +29,8 @@ LDFLAGS+=-static
 
 # The "fake" daemon
 
-TESTFILES = edition license license_file gpg v6globs additional_features fakev6 v6testd
+TESTFILES = edition license license_file gpg v6globs \
+	additional_features fakev6 v6testd
 OCamlProgram($(V6TESTD), $(TESTFILES))
 
 # LPE
@@ -47,12 +49,19 @@ OCAML_LINK_FLAGS += $(LPE_LIB)/libLicHelper.a $(LPE_LIB)/libMFLic.a $(LPE_LIB)/l
 
 # The "real" daemon
 
-FILES = lpe v6alert v6globs additional_features edition grace_retry license license_file gpg realv6 v6d
+FILES = lpe v6alert v6globs additional_features edition grace_retry \
+	license license_file gpg realv6 v6d
 
 StaticCLibrary(lpe_stubs, lpe_stubs)
 OCamlLibraryClib(lpe, lpe, lpe_stubs)
 OCamlProgram($(V6D), $(FILES))
 #OCamlDocProgram($(V6D), $(FILES))
+
+# The Egenera daemon (DMC in Free Edition)
+
+EGENERAFILES = lpe v6alert v6globs additional_features edition_egenera \
+	grace_retry license license_file gpg realv6 v6d_egenera
+OCamlProgram($(V6D_EGENERA), $(EGENERAFILES))
 
 # Test program
 
@@ -62,7 +71,7 @@ OCamlProgram($(V6D), $(FILES))
 #test-lpe: v6d lpe_test.cma
 #	$(OCAMLFIND) $(OCAMLMKTOP) -o lpe_test_top lpe_test.cma
 
-.DEFAULT: $(V6D) $(V6TESTD)
+.DEFAULT: $(V6D) $(V6TESTD) $(V6D_EGENERA)
 
 .PHONY: install
 install: $(V6D)

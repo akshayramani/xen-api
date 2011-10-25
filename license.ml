@@ -12,6 +12,9 @@
  * GNU Lesser General Public License for more details.
  *)
 
+module Make =
+functor (E : module type of Edition) -> struct
+
 open Stringext
 open Pervasiveext
 
@@ -19,7 +22,7 @@ module D = Debug.Debugger(struct let name="license" end)
 open D
 
 (* Defaults *)
-let edition = Edition.Free
+let edition = E.Free
 
 (* Round a date, given by Unix.time, to days *)
 let round_to_days d =
@@ -132,7 +135,7 @@ let of_assoc_list (x: (string * string) list) =
     
 let default () =
     { 
-      sku = Edition.to_string edition;
+      sku = E.to_string edition;
       version = default_version;
       serialnumber = "";
       sockets = default_sockets;
@@ -147,7 +150,7 @@ let default () =
       state = "";
       postalcode = "";
       country = "";
-      sku_marketing_name = Edition.to_marketing_name edition;
+      sku_marketing_name = E.to_marketing_name edition;
     }
 
 (* Calls to obtain info about license *)
@@ -155,3 +158,4 @@ let default () =
 let check_expiry l = 
 	Unix.time () < l.expiry
 
+end

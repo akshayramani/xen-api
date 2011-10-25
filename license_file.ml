@@ -27,8 +27,13 @@
  * impossible to start new domains.
  *)
 
+module Make =
+functor (E : module type of Edition) -> struct
+
 open Stringext
 open Pervasiveext
+
+module License = License.Make(E)
 open License
 
 module D = Debug.Debugger(struct let name="license" end)
@@ -85,7 +90,7 @@ let parse_license license_data =
 	if sku <> "XE Express" then
 		raise License_file_deprecated
 	else
-		{sku = Edition.to_string Edition.Free;
+		{sku = E.to_string E.Free;
 		 version = readfld "version" attrs;
 		 serialnumber = readfld "serialnumber" attrs;
 		 sockets = int_of_string (readfld "sockets" attrs); 
@@ -100,7 +105,7 @@ let parse_license license_data =
 		 state = maybe_readfld "state" attrs;
 		 postalcode = maybe_readfld "postalcode" attrs;
 		 country = maybe_readfld "country" attrs;
-		 sku_marketing_name = Edition.to_marketing_name Edition.Free;
+		 sku_marketing_name = E.to_marketing_name E.Free;
 		}
   | _ -> raise LicenseParseError
 
@@ -142,3 +147,4 @@ let do_parse_and_validate fname =
 	  log_backtrace ());
     raise e
 
+end

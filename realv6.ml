@@ -1,9 +1,15 @@
+module Make =
+functor (E : module type of Edition) -> (struct
+
 let _proprietary_code_marker = "Citrix proprietary code"
 
 module D=Debug.Debugger(struct let name="v6api" end)
 open D
 open Stringext
 open Threadext
+
+module L  = License.Make(E)
+module LF = License_file.Make(E)
 
 type state_type = {
 	edition: string;
@@ -249,15 +255,14 @@ let initialise address port edition =
 	| None -> init_lpe ()
 
 
-open Edition
+let supported_editions = [E.Free; E.Advanced; E.Enterprise; E.Enterprise_xd; E.Platinum]
 
-let supported_editions = [Free; Advanced; Enterprise; Enterprise_xd; Platinum]
 let v6edition = function
-	| Edition.Advanced -> "ADV"
-	| Edition.Enterprise -> "ENT"
-	| Edition.Enterprise_xd -> "XD"
-	| Edition.Platinum -> "PLT"
-	| Edition.Free -> ""
+	| E.Advanced -> "ADV"
+	| E.Enterprise -> "ENT"
+	| E.Enterprise_xd -> "XD"
+	| E.Platinum -> "PLT"
+	| E.Free -> ""
 
 let write_grace_to_file grace_expiry =
 	let grace_expiry_str = string_of_float grace_expiry in
@@ -271,57 +276,60 @@ let read_grace_from_file () =
 
 let apply_edition edition additional =
 	(* default is free edition with 30 day grace validity *)
-	let default_license = License.default () in
+	let default_license = L.default () in
 	let current_edition = List.assoc "current_edition" additional in
 	let startup = List.mem_assoc "startup" additional && List.assoc "startup" additional = "true" in
 	let get_license edition current_license =
 		try
 			Grace_retry.cancel (); (* cancel any existing grace-retry timer *)
-			let edition' = Edition.of_string edition in
+			let edition' = E.of_string edition in
 			if not (List.mem edition' supported_editions) then
-				raise (Edition.Undefined_edition edition);
+				raise (E.Undefined_edition edition);
 			let current_edition =
 				if current_edition = "" then
-					Edition.to_string Edition.Free
+					E.to_string E.Free
 				else
 					current_edition
 			in
 			match edition' with
-			| Edition.Free ->
+			| E.Free ->
 				if startup || List.mem_assoc "license_file" additional then begin
 					info "Attempting to apply 'free' edition activation key.";
 					let license_file =
 						if List.mem_assoc "license_file" additional then
 							List.assoc "license_file" additional
 						else
-							!License_file.filename
+							!LF.filename
 					in
-					debug "License file: %s" !License_file.filename;
+					debug "License file: %s" !LF.filename;
 					begin try
-						let new_license = License_file.do_parse_and_validate license_file in
-						if license_file <> !License_file.filename then
-							Unix.rename license_file !License_file.filename;
+						let new_license = LF.do_parse_and_validate license_file in
+						if license_file <> !LF.filename then
+							Unix.rename license_file !LF.filename;
 						info "Holding 'free' edition license with expiry date %s."
-							(Date.to_string (Date.of_float new_license.License.expiry));
+							(Date.to_string
+								 (Date.of_float new_license.L.expiry));
 						new_license
 					with
-					| License_file.License_expired l when startup -> l (* keep expired license *)
+					| LF.License_expired l when startup -> l (* keep expired license *)
 					| _ when startup ->
 						(* activation file does not exist or is invalid *)
-						if current_license.License.expiry < default_license.License.expiry then begin
+						if current_license.L.expiry < default_license.L.expiry then begin
 							info "Existing 'free' license with expiry date %s still in effect."
-								(Date.to_string (Date.of_float current_license.License.expiry));
+								(Date.to_string
+									 (Date.of_float
+										  current_license.L.expiry));
 							{
 								default_license with
-								License.expiry = current_license.License.expiry
+								L.expiry = current_license.L.expiry
 							}
 						end else begin
 							info "Generating 'free' edition grace license, which needs to be activated in 30 days.";
 							default_license
 						end
-					| License_file.License_expired l ->
+					| LF.License_expired l ->
 						raise (V6errors.Error(V6errors.license_expired, []))
-					| License_file.License_file_deprecated ->
+					| LF.License_file_deprecated ->
 						raise (V6errors.Error(V6errors.license_file_deprecated, []))
 					| e ->
 						begin
@@ -329,14 +337,14 @@ let apply_edition edition additional =
 							raise (V6errors.Error(V6errors.license_processing_error, []))
 						end
 					end
-				end else if Edition.of_string current_edition = Edition.Free then begin
+				end else if E.of_string current_edition = E.Free then begin
 					info "The host's edition is already 'free', and not applying a new activation key or starting xapi. No change.";
 					current_license
 				end else begin
 					info "Downgrading from '%s' to 'free' edition." current_edition;
 					ignore (shutdown ());
 					(* delete activation key, if it exists *)
-					Unixext.unlink_safe !License_file.filename;
+					Unixext.unlink_safe !LF.filename;
 					default_license
 				end
 			| e ->
@@ -346,7 +354,7 @@ let apply_edition edition additional =
 
 				(* Try to get the a v6 license; if one has already been checked out,
 				 * it will be automatically checked back in. *)
-				if Edition.of_string current_edition = Edition.Free then
+				if E.of_string current_edition = E.Free then
 					info "Upgrading from 'free' to '%s' edition..." edition
 				else
 					info "(Re)applying %s license..." edition;
@@ -388,7 +396,7 @@ let apply_edition edition additional =
 					info "Checked out %s %s license from license server." edition license;
 					(* delete upgrade-grace file, if it exists *)
 					Unixext.unlink_safe Xapi_globs.upgrade_grace_file;
-					let name = Edition.to_marketing_name edition' in
+					let name = E.to_marketing_name edition' in
 					if license = "grace" then begin
 						Grace_retry.start edition;
 						let expires =
@@ -399,65 +407,65 @@ let apply_edition edition additional =
 						in
 						{
 							default_license with
-							License.sku = edition;
-							License.sku_marketing_name = name;
-							License.expiry = expires;
-							License.grace = "regular grace";
+							L.sku = edition;
+							L.sku_marketing_name = name;
+							L.expiry = expires;
+							L.grace = "regular grace";
 						}
 					end else
 						{
 							default_license with
-							License.sku = edition;
-							License.sku_marketing_name = name;
-							License.expiry = expires
+							L.sku = edition;
+							L.sku_marketing_name = name;
+							L.expiry = expires
 						}
 				end else if edition = current_edition && upgrade_grace then begin
 					info "No %s license is available, but we are still in the upgrade grace period." current_edition;
-					{current_license with License.grace = "upgrade grace"}
+					{current_license with L.grace = "upgrade grace"}
 				end else if List.mem_assoc "earlyrelease" additional then begin
 					info "Upgrade from beta: transition to GA (30-day grace license).";
-					let expiry = License.upgrade_grace_expiry () in
+					let expiry = L.upgrade_grace_expiry () in
 					write_grace_to_file expiry;
 					V6alert.send_v6_upgrade_grace_license ();
-					let name = Edition.to_marketing_name (of_string edition) in
+					let name = E.to_marketing_name (E.of_string edition) in
 					{default_license with
-						License.sku = current_edition;
-						License.sku_marketing_name = name;
-						License.expiry = expiry;
-						License.grace = "upgrade grace"}
+						L.sku = current_edition;
+						L.sku_marketing_name = name;
+						L.expiry = expiry;
+						L.grace = "upgrade grace"}
 				end else if startup then begin
 					info "No %s license is available. License is set to 'expired' (no VMs can start)." current_edition;
 					(* expiry date 0 means 01-01-1970, so always expired *)
-					{current_license with License.expiry = 0.}
+					{current_license with L.expiry = 0.}
 				end else begin
 					error "License could not be checked out. Edition is not changed.";
 					ignore (shutdown ());
 					raise (V6errors.Error (V6errors.license_checkout_error, [edition]))
 				end
-		with Edition.Undefined_edition e ->
+		with E.Undefined_edition e ->
 			raise (V6errors.Error (V6errors.invalid_edition, [edition]))
 	in
 	let new_edition, new_license =
 		(* If edition is blank, use Free as the default. This indicates startup after a fresh install,
 		 * or the application of a new license file. *)
-		let edition = if edition = "" then Edition.to_string Edition.Free else edition in
+		let edition = if edition = "" then E.to_string E.Free else edition in
 		try
-			let current_license = License.of_assoc_list additional in
+			let current_license = L.of_assoc_list additional in
 			edition,
 			get_license edition current_license
-		with License.Missing_license_param _ ->
+		with L.Missing_license_param _ ->
 			(* No current license params: first boot -> give a default license.
 			 * If an activation key exists, this will used. *)
 			edition,
 			get_license edition default_license
 	in
-	new_edition, Edition.to_features (Edition.of_string new_edition),
-		(License.to_assoc_list new_license) @ V6globs.early_release @
-		(Additional_features.to_assoc_list (Edition.to_additional_features (Edition.of_string new_edition)))
+	new_edition, E.to_features (E.of_string new_edition),
+		(L.to_assoc_list new_license) @ V6globs.early_release @
+		(Additional_features.to_assoc_list (E.to_additional_features (E.of_string new_edition)))
 
 let get_editions () =
-	List.map (fun e -> Edition.to_string e, Edition.to_marketing_name e,
-		Edition.to_short_string e, Edition.to_int e) supported_editions
+	List.map (fun e -> E.to_string e, E.to_marketing_name e,
+		E.to_short_string e, E.to_int e) supported_editions
 
 let get_version () =
 	V6globs.dbv
@@ -469,3 +477,5 @@ let reopen_logs () =
 		debug "Logfiles reopened";
 		true
 	with _ -> false
+
+end : V6rpc.V6api)

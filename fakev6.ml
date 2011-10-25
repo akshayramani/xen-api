@@ -20,9 +20,12 @@ open D
 open Edition
 let supported_editions = [Free; Advanced; Enterprise; Enterprise_xd; Platinum]
 
+module L  = License.Make(Edition)
+module LF = License_file.Make(Edition)
+
 let apply_edition edition additional =
 	(* default is free edition with 30 day grace validity *)
-	let default_license = License.default () in
+	let default_license = L.default () in
 	let current_edition = List.assoc "current_edition" additional in
 	let startup = List.mem_assoc "startup" additional && List.assoc "startup" additional = "true" in
 	let get_license edition current_license =
@@ -39,34 +42,34 @@ let apply_edition edition additional =
 						if List.mem_assoc "license_file" additional then
 							List.assoc "license_file" additional
 						else
-							!License_file.filename
+							!LF.filename
 					in
-					debug "License file: %s" !License_file.filename;
+					debug "License file: %s" !LF.filename;
 					begin try
-						let new_license = License_file.do_parse_and_validate license_file in
-						if license_file <> !License_file.filename then
-							Unix.rename license_file !License_file.filename;
+						let new_license = LF.do_parse_and_validate license_file in
+						if license_file <> !LF.filename then
+							Unix.rename license_file !LF.filename;
 						info "Holding 'free' edition license with expiry date %s."
-							(Date.to_string (Date.of_float new_license.License.expiry));
+							(Date.to_string (Date.of_float new_license.L.expiry));
 						new_license
 					with 
-					| License_file.License_expired l when startup -> l (* keep expired license *)
+					| LF.License_expired l when startup -> l (* keep expired license *)
 					| _ when startup ->
 						(* activation file does not exist or is invalid *)
-						if current_license.License.expiry < default_license.License.expiry then begin
+						if current_license.L.expiry < default_license.L.expiry then begin
 							info "Existing 'free' license with expiry date %s still in effect."
-								(Date.to_string (Date.of_float current_license.License.expiry));
+								(Date.to_string (Date.of_float current_license.L.expiry));
 							{
 								default_license with
-								License.expiry = current_license.License.expiry
+								L.expiry = current_license.L.expiry
 							}
 						end else begin
 							info "Generating 'free' edition grace license, which needs to be activated in 30 days.";
 							default_license
 						end
-					| License_file.License_expired l ->
+					| LF.License_expired l ->
 						raise (V6errors.Error(V6errors.license_expired, []))
-					| License_file.License_file_deprecated ->
+					| LF.License_file_deprecated ->
 						raise (V6errors.Error(V6errors.license_file_deprecated, []))
 					| e ->
 						begin
@@ -80,7 +83,7 @@ let apply_edition edition additional =
 				end else begin
 					info "Downgrading from '%s' to 'free' edition." current_edition;
 					(* delete activation key, if it exists *)
-					Unixext.unlink_safe !License_file.filename;
+					Unixext.unlink_safe !LF.filename;
 					default_license
 				end
 			| e ->
@@ -109,9 +112,9 @@ let apply_edition edition additional =
 				let name = Edition.to_marketing_name edition' in
 				{
 					default_license with
-					License.sku = edition;
-					License.sku_marketing_name = name;
-					License.expiry = expires
+					L.sku = edition;
+					L.sku_marketing_name = name;
+					L.expiry = expires
 				}
 		with Edition.Undefined_edition e ->
 			raise (V6errors.Error (V6errors.invalid_edition, [edition]))
@@ -121,17 +124,17 @@ let apply_edition edition additional =
 		 * or the application of a new license file. *)
 		let edition = if edition = "" then Edition.to_string Edition.Free else edition in
 		try
-			let current_license = License.of_assoc_list additional in
+			let current_license = L.of_assoc_list additional in
 			edition,
 			get_license edition current_license
-		with License.Missing_license_param _ ->
+		with L.Missing_license_param _ ->
 			(* No current license params: first boot -> give a default license.
 			 * If an activation key exists, this will used. *)
 			edition,
 			get_license edition default_license
 	in
 	new_edition, Edition.to_features (Edition.of_string new_edition),
-		(License.to_assoc_list new_license) @ V6globs.early_release @
+		(L.to_assoc_list new_license) @ V6globs.early_release @
 		(Additional_features.to_assoc_list (Edition.to_additional_features (Edition.of_string new_edition)))
 
 let get_editions () =
@@ -148,3 +151,4 @@ let reopen_logs () =
 		debug "Logfiles reopened";
 		true
 	with _ -> false
+
