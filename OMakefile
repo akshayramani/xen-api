@@ -71,7 +71,7 @@ OCamlProgram($(V6D_EGENERA), $(EGENERAFILES))
 #test-lpe: v6d lpe_test.cma
 #	$(OCAMLFIND) $(OCAMLMKTOP) -o lpe_test_top lpe_test.cma
 
-.DEFAULT: $(V6D) $(V6TESTD) $(V6D_EGENERA)
+.DEFAULT: $(V6D) $(V6TESTD)
 
 .PHONY: install
 install: $(V6D)
