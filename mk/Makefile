@@ -10,10 +10,8 @@ build: srpm $(MY_SOURCES)/MANIFEST
 	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bb $(RPM_SPECSDIR)/v6d.spec
 	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bb $(RPM_SPECSDIR)/v6testd.spec
 	mkdir -p $(MY_OUTPUT_DIR) $(MY_XENSERVER_PACKAGES)
-	mkdir -p $(MY_OUTPUT_DIR) $(MY_XCP_PACKAGES)
 	# Deliberately omit the debuginfo RPM (v6d-debuginfo-0...)
 	cp $(RPM_BINDIR)/v6d-0*.rpm $(MY_XENSERVER_PACKAGES)
-	cp $(RPM_BINDIR)/v6testd-0-0.i686.rpm $(MY_XCP_PACKAGES)
 	cp $(RPM_BINDIR)/v6testd-0-0.i686.rpm $(MY_OUTPUT_DIR)/v6-test.rpm
 	cp $(RPM_BUILDDIR)/v6testd-0/v6testd $(MY_OUTPUT_DIR)
 	# Remove XCP's v6d RPM from the api component
