@@ -14,8 +14,6 @@ build: srpm $(MY_SOURCES)/MANIFEST
 	cp $(RPM_BINDIR)/v6d-0*.rpm $(MY_XENSERVER_PACKAGES)
 	cp $(RPM_BINDIR)/v6testd-0-0.i686.rpm $(MY_OUTPUT_DIR)/v6-test.rpm
 	cp $(RPM_BUILDDIR)/v6testd-0/v6testd $(MY_OUTPUT_DIR)
-	# Remove XCP's v6d RPM from the api component
-	rm -f $(PROJECT_OUTPUTDIR)/api/PACKAGES.main/xapi-v6d*.rpm
 
 .PHONY: srpm
 srpm:
