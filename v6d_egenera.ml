@@ -14,6 +14,6 @@ let handle_shutdown () =
 				 exit 0 ))
 
 let _ =
+	Debug.set_facility Syslog.Local4;
 	handle_shutdown ();
-	Logs.reset_all [ "file:/var/log/v6d.log" ];
 	V6daemon.startup Lpe.init P.process
