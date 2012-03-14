@@ -470,12 +470,6 @@ let get_editions () =
 let get_version () =
 	V6globs.dbv
 
-let reopen_logs () =
-	try
-		debug "Reopening logfiles";
-		Logs.reopen ();
-		debug "Logfiles reopened";
-		true
-	with _ -> false
+let reopen_logs () = true
 
 end : V6rpc.V6api)
