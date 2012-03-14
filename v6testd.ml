@@ -14,6 +14,10 @@
 
 module P = V6rpc.V6process(Fakev6)
 
+module D=Debug.Debugger(struct let name="v6daemon" end)
+open D
+
 let _ =
-	Logs.reset_all [ "file:/var/log/v6d.log" ];
+	Debug.set_facility Syslog.Local4;	
+	debug "V6d started";
 	V6daemon.startup (fun () -> ()) P.process
