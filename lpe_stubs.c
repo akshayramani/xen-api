@@ -298,8 +298,14 @@ CAMLprim value get_license_c(value profile)
 			result = MFLic_GetAPInfo(lpe_handle, (void**) &apinfo);
 		
 			if (result == MFLIC_SUCCESS && apinfo != NULL) {
-				Store_field(tuple, 2, Val_int(apinfo->daysToExpire));
-				D("    days to expire: %d\n", apinfo->daysToExpire);
+				if (apinfo->daysToExpire >= (365 * 50)) {
+					D("    days to expire > 50yrs; license is effectively permanent\n");
+					Store_field(tuple, 2, Val_int(-1));
+				}
+				else {
+					D("    days to expire: %d\n", apinfo->daysToExpire);
+					Store_field(tuple, 2, Val_int(apinfo->daysToExpire));
+				}
 			}
 			else {
 				Store_field(tuple, 2, Val_int(-1));
