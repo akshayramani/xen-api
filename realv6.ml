@@ -422,7 +422,7 @@ let apply_edition edition additional =
 				end else if edition = current_edition && upgrade_grace then begin
 					info "No %s license is available, but we are still in the upgrade grace period." current_edition;
 					{current_license with L.grace = "upgrade grace"}
-				end else if List.mem_assoc "earlyrelease" additional then begin
+				end else if V6globs.beta or (List.mem_assoc "earlyrelease" additional) then begin
 					info "Upgrade from beta: transition to GA (30-day grace license).";
 					let expiry = L.upgrade_grace_expiry () in
 					write_grace_to_file expiry;
