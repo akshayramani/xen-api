@@ -89,5 +89,5 @@ install-test: $(V6TESTD)
 
 .PHONY: clean
 clean:
-	rm -f *.cmi *.cmx *.cmo *.a *.cma *.cmxa *.run *.opt *.annot *.o *.spot *.spit *.omc
+	rm -f *.cmi *.cmx *.cmo *.a *.cma *.cmxa *.run *.opt *.annot *.o *.spot *.spit *.omc *.cmt *.cmti
 	rm -f $(V6D) $(V6TESTD) $(V6D_EGENERA)
