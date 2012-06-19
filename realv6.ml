@@ -14,7 +14,7 @@ module LF = License_file.Make(E)
 type state_type = {
 	edition: string;
 	licensed: string;
-	days_to_expire: int32;
+	days_to_expire: Lpe.expiry_t;
 	timestamp: float;
 }
 
@@ -42,7 +42,9 @@ let initialise address port edition =
 	let write_last_check_data p e =
 		try
 			let timestamp = string_of_float (Unix.time ()) in
-			let days_to_expire = match !state with Some s -> Int32.to_string s.days_to_expire | None -> "-1" in
+			let days_to_expire = match !state with
+				| Some s -> Lpe.string_of_expiry_t s.days_to_expire
+				| None -> Lpe.string_of_expiry_t Lpe.Permanent in
 			let server = address ^ (Int32.to_string port) in
 			let data = p ^ "\n" ^ e ^ "\n" ^ timestamp ^ "\n" ^ days_to_expire ^ "\n" ^ server in
 			let checksum = hash data in
@@ -64,10 +66,10 @@ let initialise address port edition =
 				let data_split = String.split '\n' data in
 				match data_split with
 				| [a; b; c; d; e] ->
-					a, b, float_of_string c, int_of_string d, e
+					a, b, float_of_string c, Lpe.expiry_t_of_string d, e
 				| _ -> failwith "error reading timestamp file!"
 		with _ ->
-			"", "", 0., 0, ""
+			"", "", 0., Lpe.Days 0, ""
 	in
 	let init_lpe () =
 		if edition = "XD" then
@@ -161,36 +163,33 @@ let initialise address port edition =
 						ignore (Thread.create grace_thread ())
 					end
 				);
-				"real", Int32.of_int (-1)
+				"real", Lpe.Permanent
 			| Lpe.Granted_grace ->
 				let days_to_expire = 30 - days_since_last_checkout in
 				ignore(V6alert.send_alert Api_messages.v6_grace_license "The license server is unreachable. However, a grace license is given, as a similar license was successfully checked out recently.");
-				"grace", Int32.of_int days_to_expire
+				"grace", Lpe.Days days_to_expire
 			| Lpe.Rejected ->
 				debug "XD license NOT present on license server";
 				ignore (V6alert.send_alert Api_messages.v6_rejected "The requested license is not available at the license server.");
-				"declined", Int32.of_int (-1)
+				"declined", Lpe.Permanent
 			| Lpe.Unreachable ->
 				ignore (V6alert.send_alert Api_messages.v6_comm_error "The license could not be checked out, because the license server could not be reached at the given address/port. Please check the connection details, and verify that the license server is running.");
-				"declined", Int32.of_int (-1)
+				"declined", Lpe.Permanent
 		else (* edition <> "XD" *)
 			if Lpe.start address (Int32.to_int port) V6globs.v6product edition V6globs.dbv then begin
 				let result = Lpe.get_license () in
 				match result with
 				(* Lpe.checkout_result_t option, Lpe.expiry_t option *)
-				| Some Lpe.Granted_real, Some expiry
-					->
+				| Some Lpe.Granted_real, Some expiry ->
 					debug "Got real license";
-					let days_to_expire =
-						match expiry with
-						| Lpe.Permanent -> debug "Permanent license"; Int32.of_int (-1)
-						| Lpe.Days d -> debug "%d days to expire" d; Int32.of_int d
-					in
+					(match expiry with
+						| Lpe.Permanent -> debug "Permanent license"
+						| Lpe.Days d -> debug "%d days to expire" d);
 					state := Some {edition = edition;
 								   licensed = "real";
-								   days_to_expire = days_to_expire;
+								   days_to_expire = expiry;
 								   timestamp = Unix.time ()};
-					"real", days_to_expire
+					"real", expiry
 				| Some Lpe.Granted_grace, _ ->
 					let grace_expiry = Lpe.get_grace_expiry V6globs.v6product in
 					begin match grace_expiry with
@@ -203,50 +202,50 @@ let initialise address port edition =
 								hours_left / 24 + 1
 						in
 						debug "Got grace license for %d day(s)" days_to_expire;
-						let days_to_expire = Int32.of_int days_to_expire in
 						state := Some {edition = edition;
 							licensed = "grace";
-							days_to_expire = days_to_expire;
+							days_to_expire = Lpe.Days days_to_expire;
 							timestamp = Unix.time ()};
 						V6alert.send_v6_grace_license ();
-						"grace", days_to_expire
+						"grace", Lpe.Days days_to_expire
 					| _ ->
 						debug "License declined";
 						ignore (Lpe.release_license ());
 						state := Some {edition = edition;
 									   licensed = "declined";
-									   days_to_expire = Int32.of_int (-1);
+									   days_to_expire = Lpe.Permanent;
 									   timestamp = Unix.time ()};
 						V6alert.send_v6_rejected ();
-						"declined", Int32.of_int (-1)
+						"declined", Lpe.Permanent
 					end
 				| checkout_result, _ ->
 					debug "License declined";
 					state := Some {edition = edition;
 								   licensed = "declined";
-								   days_to_expire = Int32.of_int (-1);
+								   days_to_expire = Lpe.Permanent;
 								   timestamp = Unix.time ()};
 					begin match checkout_result with
 					| Some Lpe.Rejected -> V6alert.send_v6_rejected ()
 					| Some Lpe.Unreachable -> V6alert.send_v6_comm_error ()
 					| _ -> ()
 					end;
-					"declined", Int32.of_int (-1)
+					"declined", Lpe.Permanent
 			end else begin
 				V6alert.send_v6_comm_error ();
-				"declined", Int32.of_int (-1)
+				"declined", Lpe.Permanent
 			end
 	in
 	match !state with
 	| Some s ->
 		if s.edition = edition && s.licensed = "real" then begin
 			debug "Already initialised with same edition; returning state";
-			if Int32.to_int s.days_to_expire > -1 then begin
-				let days_past = int_of_float ((Unix.time () -. s.timestamp) /. 3600. /. 24.) in
-				let days_to_expire = Int32.to_int s.days_to_expire - days_past in
-				s.licensed, Int32.of_int days_to_expire
-			end else
-				s.licensed, s.days_to_expire
+			match s.days_to_expire with
+			| Lpe.Days days_to_expire ->
+				let days_past = int_of_float
+					((Unix.time () -. s.timestamp) /. 3600. /. 24.) in
+				let days_to_expire = days_to_expire - days_past in
+				s.licensed, Lpe.Days days_to_expire
+			| Lpe.Permanent -> s.licensed, s.days_to_expire
 		end else begin
 			debug "Already initialised, but with different edition; shutting down first";
 			ignore (shutdown ());
@@ -374,12 +373,11 @@ let apply_edition edition additional =
 
 				(* set expiry date *)
 				let now = Unix.time () in
-				let expires =
-					if days_to_expire > -1l then
-						now +. (Int32.to_float days_to_expire *. 24. *. 3600.)
-					else
-						never
+				let expires = match days_to_expire with
+					| Lpe.Days d -> now +. (float_of_int d *. 24. *. 3600.)
+					| Lpe.Permanent -> never
 				in
+
 				(* check fist point *)
 				let expires =
 					(* CA-33155: FIST point may only set an expiry date earlier than the actual one *)

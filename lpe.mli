@@ -15,6 +15,12 @@ type expiry_t =
 	| Permanent		(** The license is permanent and will never expire *)
 	| Days of int	(** The license will expire in the given number of days *)
 
+(** Convert a string to expiry_t *)
+val expiry_t_of_string : string -> expiry_t
+
+(** Convert an expiry_t to string *)
+val string_of_expiry_t : expiry_t -> string
+
 (** Allocate memory and set up thread for callbacks.
  *  This needs to be done before starting the LPE. *)
 val init : unit -> unit

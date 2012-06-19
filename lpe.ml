@@ -23,6 +23,14 @@ external license_check_c: string -> int -> string -> string -> string -> int = "
 type checkout_result_t = Granted_real | Granted_grace | Unreachable | Rejected
 type expiry_t = Permanent | Days of int
 
+let string_of_expiry_t = function
+	| Permanent -> "Permanent"
+	| Days d -> string_of_int d
+
+let expiry_t_of_string = function
+	| "Permanent" -> Permanent
+	| d -> Days (int_of_string d)
+
 (* Stuff for tracking the server status in the callback thread *)
 
 type server_status_t = Unknown | Up | Down
