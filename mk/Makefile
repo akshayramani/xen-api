@@ -2,7 +2,7 @@
 include $(B_BASE)/common.mk
 include $(B_BASE)/rpmbuild.mk
 
-REPO = $(call hg_loc,v6)
+REPO = $(call git_loc,v6)
 RPM_BINDIR = $(RPM_RPMSDIR)/$(DOMAIN0_ARCH_OPTIMIZED)
 
 .PHONY: build
@@ -18,8 +18,10 @@ build: srpm $(MY_SOURCES)/MANIFEST
 .PHONY: srpm
 srpm:
 	mkdir -p $(RPM_SRPMSDIR) $(RPM_SPECSDIR) $(RPM_SOURCESDIR) $(RPM_RPMSDIR)
-	hg archive -p v6d-0 -t tbz2 $(RPM_SOURCESDIR)/v6d-0.tar.bz2
-	hg archive -p v6testd-0 -t tbz2 $(RPM_SOURCESDIR)/v6testd-0.tar.bz2
+	cd .. ; \
+	git archive --prefix=v6d-0/ HEAD | bzip2 -c > $(RPM_SOURCESDIR)/v6d-0.tar.bz2 ; \
+	git archive --prefix=v6testd-0/ HEAD | bzip2 -c > $(RPM_SOURCESDIR)/v6testd-0.tar.bz2 ; \
+	cd mk
 	install ../v6d.spec $(RPM_SPECSDIR)
 	install ../v6testd.spec $(RPM_SPECSDIR)
 	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bs $(RPM_SPECSDIR)/v6d.spec
