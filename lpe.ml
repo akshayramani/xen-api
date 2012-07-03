@@ -64,46 +64,47 @@ let reset_state () =
 (* Starting the callback thread *)
 
 let monitor_callbacks () =
-	debug "Started callback-handling thread";
-	let last_alert = ref "" in
-	let pin, pout = Unix.pipe () in
-	set_pipe (Unixext.int_of_file_descr pout);
-	let s = String.create 1 in
-	let rec receive () =
-		try
-			Unixext.really_read pin s 0 1;
-			begin match s with
-			| "u" ->
-				Mutex.lock m;
-				if !server_status <> Up then
-					debug "License server up";
-				server_status := Up;
-				Condition.signal c;
-				Mutex.unlock m;
-				last_alert := "u"
-			| "d" ->
-				Mutex.lock m;
-				if !server_status <> Down then
-					debug "License server down";
-				server_status := Down;
-				Condition.signal c;
-				Mutex.unlock m;
-				last_alert := "d"
-			| "e" when !last_alert <> "e" ->
-				debug "License expired";
+	Debug.with_thread_associated "lpe_callback" (fun () ->
+		debug "Started callback-handling thread";
+	  let last_alert = ref "" in
+	  let pin, pout = Unix.pipe () in
+	  set_pipe (Unixext.int_of_file_descr pout);
+	  let s = String.create 1 in
+	  let rec receive () =
+		  try
+			  Unixext.really_read pin s 0 1;
+			  begin match s with
+				  | "u" ->
+						Mutex.lock m;
+						if !server_status <> Up then
+							debug "License server up";
+						server_status := Up;
+						Condition.signal c;
+						Mutex.unlock m;
+						last_alert := "u"
+				  | "d" ->
+						Mutex.lock m;
+						if !server_status <> Down then
+							debug "License server down";
+						server_status := Down;
+						Condition.signal c;
+						Mutex.unlock m;
+						last_alert := "d"
+				  | "e" when !last_alert <> "e" ->
+						debug "License expired";
 				(* ignore(V6alert.send_alert Api_messages.v6_license_expired ""); *)
-				last_alert := "e"
-			| "v" ->
-				error "Incompatible license-server version!"
-			| x -> debug "Unknown or redundant callback '%s'" x
-			end;
-			receive ()
-		with End_of_file ->
-			error "There was an error in the callback system of the License Policy Engine. Aborted callback thread.";
+						last_alert := "e"
+				  | "v" ->
+						error "Incompatible license-server version!"
+				  | x -> debug "Unknown or redundant callback '%s'" x
+			  end;
+			  receive ()
+		  with End_of_file ->
+			  error "There was an error in the callback system of the License Policy Engine. Aborted callback thread.";
 			raise End_of_file
-	in
-	receive ()
-
+	  in
+	  receive ()
+	) ()
 
 (* LPE control functions *)
 
