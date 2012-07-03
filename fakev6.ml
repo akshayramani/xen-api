@@ -23,7 +23,7 @@ let supported_editions = [Free; Advanced; Enterprise; Enterprise_xd; Platinum]
 module L  = License.Make(Edition)
 module LF = License_file.Make(Edition)
 
-let apply_edition edition additional =
+let apply_edition dbg edition additional =
 	(* default is free edition with 30 day grace validity *)
 	let default_license = L.default () in
 	let current_edition = List.assoc "current_edition" additional in
@@ -137,11 +137,11 @@ let apply_edition edition additional =
 		(L.to_assoc_list new_license) @ V6globs.early_release @
 		(Additional_features.to_assoc_list (Edition.to_additional_features (Edition.of_string new_edition)))
 
-let get_editions () =
+let get_editions dbg =
 	List.map (fun e -> Edition.to_string e, Edition.to_marketing_name e,
 		Edition.to_short_string e, Edition.to_int e) supported_editions
 
-let get_version () =
+let get_version dbg =
 	V6globs.dbv
 
 let reopen_logs () = true

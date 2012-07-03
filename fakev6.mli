@@ -16,13 +16,13 @@
     licenses that never expire. *)
 
 (** Obtain a license *)
-val apply_edition : string -> (string * string) list ->
+val apply_edition : string -> string -> (string * string) list ->
 	string * Features.feature list * (string * string) list
 
 (** Release the license *)
-val get_editions : unit -> (string * string * string * int) list
+val get_editions : string -> (string * string * string * int) list
 
-val get_version : unit -> string
+val get_version : string -> string
 
 (** Close and re-open the log file *)
 val reopen_logs : unit -> bool

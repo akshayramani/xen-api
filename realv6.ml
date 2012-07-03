@@ -273,7 +273,7 @@ let read_grace_from_file () =
 		float_of_string grace_expiry_str
 	with _ -> 0.
 
-let apply_edition edition additional =
+let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun () ->
 	(* default is free edition with 30 day grace validity *)
 	let default_license = L.default () in
 	let current_edition = List.assoc "current_edition" additional in
@@ -460,13 +460,18 @@ let apply_edition edition additional =
 	new_edition, E.to_features (E.of_string new_edition),
 		(L.to_assoc_list new_license) @ V6globs.early_release @
 		(Additional_features.to_assoc_list (E.to_additional_features (E.of_string new_edition)))
+	) () (* Debug.with_thread_associated *)
 
-let get_editions () =
-	List.map (fun e -> E.to_string e, E.to_marketing_name e,
-		E.to_short_string e, E.to_int e) supported_editions
+let get_editions dbg =
+	Debug.with_thread_associated dbg (fun () ->
+		List.map (fun e -> E.to_string e, E.to_marketing_name e,
+			E.to_short_string e, E.to_int e) supported_editions
+	) ()
 
-let get_version () =
-	V6globs.dbv
+let get_version dbg =
+	Debug.with_thread_associated dbg (fun () ->
+		V6globs.dbv
+	) ()
 
 let reopen_logs () = true
 
