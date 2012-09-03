@@ -51,8 +51,8 @@ let to_marketing_name = function
 (* Editions to features *)
 
 let free_features = [VLAN; QoS; Shared_storage; Pooling; Marathon; Connection; IntelliCache]
-let advanced_features = HA :: Email :: Performance :: DMC :: CPU_masking :: No_nag_dialog :: No_platform_filter :: VMPR :: VIF_locking :: free_features
-let enterprise_features = Netapp :: Equalogic :: WLB :: RBAC :: Checkpoint :: GPU :: Storage_motion :: advanced_features
+let advanced_features = HA :: Email :: Performance :: DMC :: CPU_masking :: No_nag_dialog :: No_platform_filter :: VMPR :: VIF_locking :: Storage_motion :: free_features
+let enterprise_features = Netapp :: Equalogic :: WLB :: RBAC :: Checkpoint :: GPU :: advanced_features
 let platinum_features = DR :: enterprise_features
 
 let additional_free_features = []
