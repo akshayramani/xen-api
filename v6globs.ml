@@ -1,5 +1,5 @@
 (** Date-Based Version: burn-in date of current XenServer release (RTM date) *)
-let dbv = "2012.0901"
+let dbv = "2010.0521"
 
 (** Toggle between beta or GA licenses *)
 let beta = false
