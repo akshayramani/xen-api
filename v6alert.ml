@@ -21,8 +21,9 @@ let xapirpc xml =
 let send_alert msg body = 
 	let host_uuid = Xapi_inventory.lookup Xapi_inventory._installation_uuid in
 	let session = Client.Session.login_with_password ~rpc:xapirpc ~uname:"" ~pwd:"" ~version:Xapi_globs.api_version_string in
+	let (name, priority) = msg in
 	Pervasiveext.finally
-		(fun () -> Client.Message.create xapirpc session msg 1L `Host host_uuid body)
+		(fun () -> Client.Message.create xapirpc session name priority `Host host_uuid body)
 		(fun () -> Client.Session.logout xapirpc session)
 
 let send_v6_grace_license () =

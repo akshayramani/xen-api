@@ -14,7 +14,7 @@
 (** Helper module to let the licensing daemon send alerts to xapi *)
 
 (** Send a XenAPI message *)
-val send_alert : string -> string -> API.ref_message
+val send_alert : (string * int64) -> string -> API.ref_message
 
 val send_v6_grace_license : unit -> unit
 
