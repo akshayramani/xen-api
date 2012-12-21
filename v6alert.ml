@@ -16,7 +16,7 @@ open Client
 
 let xapirpc xml =
 	let open Xmlrpc_client in
-	XML_protocol.rpc ~srcstr:"v6" ~dststr:"xapi" ~transport:(Unix "/var/xapi/xapi") ~http:(xmlrpc ~version:"1.0" "/") xml
+	XMLRPC_protocol.rpc ~srcstr:"v6" ~dststr:"xapi" ~transport:(Unix "/var/xapi/xapi") ~http:(xmlrpc ~version:"1.0" "/") xml
 
 let send_alert msg body = 
 	let host_uuid = Xapi_inventory.lookup Xapi_inventory._installation_uuid in
