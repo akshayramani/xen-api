@@ -7,7 +7,7 @@ open Client
 
 let xapirpc xml =
 	let open Xmlrpc_client in
-	XML_protocol.rpc ~srcstr:"v6" ~dststr:"xapi" ~transport:(Unix "/var/xapi/xapi") ~http:(xmlrpc ~version:"1.0" "/") xml
+	XMLRPC_protocol.rpc ~srcstr:"v6" ~dststr:"xapi" ~transport:(Unix "/var/xapi/xapi") ~http:(xmlrpc ~version:"1.0" "/") xml
 
 let period =
 	if Xapi_fist.reduce_grace_retry_period () then
