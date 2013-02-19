@@ -1,5 +1,5 @@
-module Make =
-functor (E : module type of Edition) -> (struct
+module Make(E : module type of Edition)
+           (Lpe : module type of Lpe) = (struct
 
 let _proprietary_code_marker = "Citrix proprietary code"
 
