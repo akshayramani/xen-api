@@ -1,16 +1,35 @@
-external set_pipe: int -> unit = "set_pipe_c"
-external alloc_and_set_cache_dir: string -> unit = "alloc_and_set_cache_dir_c"
+let _proprietary_code_marker = "Citrix proprietary code"
 
-external start_c: string -> int -> string -> string -> string -> bool = "start_c"
-external get_license_c: string -> int * int * int = "get_license_c"
-external release_license_c: string -> bool = "release_license_c"
-external component_status_c: string -> string -> int = "component_status_c"
-external stop_c: unit -> bool = "stop_c"
-external get_grace_info_c: string -> int = "get_grace_info_c"
+type checkout_result_t = Granted_real | Granted_grace | Unreachable | Rejected
+type expiry_t = Permanent | Days of int
 
-external license_check_c: string -> int -> string -> string -> string -> int = "license_check_c"
-
+(* init will parse the fake license file *)
 let init () =
-	(* set cache directory for LPE *)
-	alloc_and_set_cache_dir "lpe-cache"
+	()
 
+let stop () = true
+
+let (start: string -> int -> string -> string -> string -> bool) =
+	fun address port product edition dbv -> true
+
+let string_of_expiry_t = function
+	| Permanent -> "Permanent"
+	| Days d -> string_of_int d
+
+let expiry_t_of_string = function
+	| "Permanent" -> Permanent
+	| d -> Days (int_of_string d)
+
+let (get_license: unit -> checkout_result_t option * expiry_t option) =
+	fun () -> None, None
+
+let (release_license: unit -> bool) = fun () -> true
+
+let (component_licensed: string -> checkout_result_t) = fun _ -> Granted_real
+
+let (license_check: string -> int -> string -> string -> string -> checkout_result_t) =
+	fun address port product edition dbv -> Granted_real
+
+let (get_grace_expiry: string -> int option) = fun _ -> None
+
+let (write_sa_date: unit -> unit) = fun () -> ()

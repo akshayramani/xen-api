@@ -1,5 +1,6 @@
 V6D = v6d
 V6TESTD = v6testd
+V6MOCKD = v6mockd
 V6D_EGENERA = v6d_egenera
 
 DESTDIR=$(getenv DESTDIR, $(ROOT)/dist/staging)
@@ -57,6 +58,12 @@ OCamlLibraryClib(lpe, lpe, lpe_stubs)
 OCamlProgram($(V6D), $(FILES))
 #OCamlDocProgram($(V6D), $(FILES))
 
+# The mock daemon, for component testing
+
+MOCKFILES = edition license license_file gpg v6globs grace_retry \
+	additional_features v6alert realv6 v6mockd lpe_test
+OCamlProgram($(V6MOCKD), $(MOCKFILES))
+
 # The Egenera daemon (DMC in Free Edition)
 
 EGENERAFILES = lpe v6alert v6globs additional_features edition_egenera \
@@ -71,7 +78,7 @@ OCamlProgram($(V6D_EGENERA), $(EGENERAFILES))
 #test-lpe: v6d lpe_test.cma
 #	$(OCAMLFIND) $(OCAMLMKTOP) -o lpe_test_top lpe_test.cma
 
-.DEFAULT: $(V6D) $(V6TESTD) $(V6D_EGENERA)
+.DEFAULT: $(V6D) $(V6TESTD) $(V6D_EGENERA) $(V6MOCKD)
 
 .PHONY: install
 install: $(V6D)
