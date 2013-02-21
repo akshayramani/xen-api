@@ -11,7 +11,7 @@ IPROG=install -m 755 -o root -g root
 IDATA=install -m 644 -o root -g root
 IEXE=install -m 755 -o root -g root
 
-OCAMLPACKS = xapi-client threads str
+OCAMLPACKS = xapi-client threads str oUnit
 
 OCAMLFLAGS = -g -dtypes -thread -warn-error +a-4-6-9-27-28-29
 OCAMLCFLAGS = -g
@@ -61,7 +61,7 @@ OCamlProgram($(V6D), $(FILES))
 # The mock daemon, for component testing
 
 MOCKFILES = edition license license_file gpg v6globs grace_retry \
-	additional_features v6alert realv6 v6mockd lpe_test
+	additional_features v6alert realv6 v6mockd lpe_test test_lpe_test
 OCamlProgram($(V6MOCKD), $(MOCKFILES))
 
 # The Egenera daemon (DMC in Free Edition)
