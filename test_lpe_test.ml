@@ -5,5 +5,5 @@ let test_read_mock_license () =
 	(* call read_mock_license () *)
 	(* test output *)
 	(* delete /tmp/mock.lic file *)
-	let lic = Lpe_test.read_mock_license () in
+	let lic = Lpe_test.read_mock_license ["tmp_mock.lic"] in
 	ignore lic
