@@ -34,7 +34,7 @@ let initialise address port edition =
 		address (Int32.to_int port) edition;
 
 	(* check edition  *)
-	if not (List.mem edition ["STD"; "ADV"; "ENT"; "PLT"; "XD"]) then
+	if not (List.mem edition ["SKT"; "STD"; "ADV"; "ENT"; "PLT"; "XD"]) then
 		failwith "unknown edition";
 
 	let ts_file = V6globs.v6_cache_dir ^ "/ts" in
@@ -254,12 +254,14 @@ let initialise address port edition =
 	| None -> init_lpe ()
 
 
-let supported_editions = [E.Free; E.Advanced; E.Enterprise; E.Enterprise_xd; E.Platinum]
+let supported_editions = [E.Free; E.Socket; E.Enterprise_xd;
+                          E.Advanced; E.Enterprise; E.Platinum]
 
 let v6edition = function
 	| E.Advanced -> "ADV"
-	| E.Enterprise -> "ENT"
+	| E.Socket -> "SKT"
 	| E.Enterprise_xd -> "XD"
+	| E.Enterprise -> "ENT"
 	| E.Platinum -> "PLT"
 	| E.Free -> ""
 

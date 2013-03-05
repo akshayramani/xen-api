@@ -16,11 +16,12 @@ open Additional_features
 
 (* Editions definitions *)
 
-type edition = Free | Advanced | Enterprise | Enterprise_xd | Platinum
+type edition = Free | Socket | Advanced | Enterprise | Enterprise_xd | Platinum
 exception Undefined_edition of string
 
 let of_string = function
 	| "free" | "XE Express" -> Free
+	| "per-socket" -> Socket
 	| "advanced" -> Advanced
 	| "enterprise" | "XE Enterprise" -> Enterprise
 	| "enterprise-xd" -> Enterprise_xd
@@ -29,6 +30,7 @@ let of_string = function
 
 let to_string = function
 	| Free -> "free"
+	| Socket -> "per-socket"
 	| Advanced -> "advanced"
 	| Enterprise -> "enterprise"
 	| Enterprise_xd -> "enterprise-xd"
@@ -36,13 +38,15 @@ let to_string = function
 
 let to_short_string = function
 	| Free -> "FREE"
+	| Socket -> "SKT"
 	| Advanced -> "ADV"
 	| Enterprise -> "ENT"
 	| Enterprise_xd -> "XD"
 	| Platinum -> "PLT"
-	
+
 let to_marketing_name = function
 	| Free -> "Citrix XenServer"
+	| Socket -> "Citrix XenServer Licensed"
 	| Advanced -> "Citrix XenServer Advanced Edition"
 	| Enterprise -> "Citrix XenServer Enterprise Edition"
 	| Enterprise_xd -> "Citrix XenServer for XenDesktop"
@@ -61,21 +65,22 @@ let additional_enterprise_features = StorageLink :: Web_self_service :: addition
 let additional_platinum_features = Lab :: Stage :: StorageLink_site_recovery :: Web_self_service_manager :: additional_enterprise_features
 
 let to_features = function
-	| Free -> free_features
+	| Free -> platinum_features
 	| Advanced -> advanced_features
 	| Enterprise | Enterprise_xd -> enterprise_features
-	| Platinum -> platinum_features
+	| Platinum | Socket -> platinum_features
 
 let to_additional_features = function
-	| Free -> additional_free_features
+	| Free -> additional_platinum_features
 	| Advanced -> additional_advanced_features
 	| Enterprise | Enterprise_xd -> additional_enterprise_features
-	| Platinum -> additional_platinum_features
+	| Platinum | Socket -> additional_platinum_features
 	
 let to_int = function
 	| Platinum -> 30
 	| Enterprise | Enterprise_xd -> 20
 	| Advanced -> 10
+	| Socket -> 5
 	| Free -> 0
 
 let equal e0 e1 =

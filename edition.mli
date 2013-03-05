@@ -18,6 +18,7 @@
 (** Available editions *)
 type edition =
 	| Free            (** XenServer Free Edition *)
+	| Socket          (** XenServer Licensed Per-socket *)
 	| Advanced        (** XenServer Advanced Edition *)
 	| Enterprise      (** XenServer Enterprise Edition *)
 	| Enterprise_xd   (** XenServer Enterprise Edition for XenDesktop *)

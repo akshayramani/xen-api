@@ -16,36 +16,40 @@ open Additional_features
 
 (* Editions definitions *)
 
-type edition = Free | Advanced | Enterprise | Enterprise_xd | Platinum
+type edition = Free | Socket | Advanced | Enterprise | Enterprise_xd | Platinum
 exception Undefined_edition of string
 
 let of_string = function
 	| "free" | "XE Express" -> Free
+	| "per-socket" -> Socket
+	| "enterprise-xd" -> Enterprise_xd
 	| "advanced" -> Advanced
 	| "enterprise" | "XE Enterprise" -> Enterprise
-	| "enterprise-xd" -> Enterprise_xd
 	| "platinum" -> Platinum
 	| x -> raise (Undefined_edition x)
 
 let to_string = function
 	| Free -> "free"
+	| Socket -> "per-socket"
+	| Enterprise_xd -> "enterprise-xd"
 	| Advanced -> "advanced"
 	| Enterprise -> "enterprise"
-	| Enterprise_xd -> "enterprise-xd"
 	| Platinum -> "platinum"
 
 let to_short_string = function
 	| Free -> "FREE"
+	| Socket -> "SKT"
+	| Enterprise_xd -> "XD"
 	| Advanced -> "ADV"
 	| Enterprise -> "ENT"
-	| Enterprise_xd -> "XD"
 	| Platinum -> "PLT"
 	
 let to_marketing_name = function
 	| Free -> "Citrix XenServer"
+	| Socket -> "Citrix XenServer Licensed"
+	| Enterprise_xd -> "Citrix XenServer for XenDesktop"
 	| Advanced -> "Citrix XenServer Advanced Edition"
 	| Enterprise -> "Citrix XenServer Enterprise Edition"
-	| Enterprise_xd -> "Citrix XenServer for XenDesktop"
 	| Platinum -> "Citrix XenServer Platinum Edition"
 
 (* Editions to features *)
@@ -67,6 +71,7 @@ let to_int = function
 	| Platinum -> 30
 	| Enterprise | Enterprise_xd -> 20
 	| Advanced -> 10
+	| Socket -> 5
 	| Free -> 0
 
 let equal e0 e1 =
