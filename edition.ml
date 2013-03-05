@@ -50,28 +50,19 @@ let to_marketing_name = function
 
 (* Editions to features *)
 
-let free_features = [VLAN; QoS; Shared_storage; Pooling; Marathon; Connection; IntelliCache]
-let advanced_features = HA :: Email :: Performance :: DMC :: CPU_masking :: No_nag_dialog :: No_platform_filter :: VMPR :: VIF_locking :: Storage_motion :: free_features
-let enterprise_features = Netapp :: Equalogic :: WLB :: RBAC :: Checkpoint :: GPU :: advanced_features
-let platinum_features = DR :: enterprise_features
+let free_features =
+	VLAN :: QoS :: Shared_storage :: Pooling :: Marathon :: Connection ::
+	IntelliCache :: HA :: Email :: Performance :: DMC :: CPU_masking :: No_nag_dialog ::
+	No_platform_filter :: VMPR :: VIF_locking :: Storage_motion ::
+	Netapp :: Equalogic :: WLB :: RBAC :: Checkpoint :: GPU :: DR :: []
 
-let additional_free_features = []
-let additional_advanced_features = Vswitch_controller :: additional_free_features
-let additional_enterprise_features = StorageLink :: Web_self_service :: additional_advanced_features
-let additional_platinum_features = Lab :: Stage :: StorageLink_site_recovery :: Web_self_service_manager :: additional_enterprise_features
+let additional_free_features = Lab :: Stage :: StorageLink_site_recovery :: StorageLink ::
+	Web_self_service_manager :: Web_self_service :: Vswitch_controller :: []
 
-let to_features = function
-	| Free -> free_features
-	| Advanced -> advanced_features
-	| Enterprise | Enterprise_xd -> enterprise_features
-	| Platinum -> platinum_features
+let to_features _ = free_features
 
-let to_additional_features = function
-	| Free -> additional_free_features
-	| Advanced -> additional_advanced_features
-	| Enterprise | Enterprise_xd -> additional_enterprise_features
-	| Platinum -> additional_platinum_features
-	
+let to_additional_features _ = additional_free_features
+
 let to_int = function
 	| Platinum -> 30
 	| Enterprise | Enterprise_xd -> 20
