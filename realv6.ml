@@ -18,6 +18,11 @@ type state_type = {
 	timestamp: float;
 }
 
+(* define "never" as 01-01-2030 *)
+let never, _ =
+	let start_of_epoch = Unix.gmtime 0. in
+	Unix.mktime {start_of_epoch with Unix.tm_year = 130}
+
 let state = ref None
 
 let xd_grace_thread = ref false
@@ -52,6 +57,7 @@ let initialise address port edition =
 			Unixext.write_string_to_file ts_file data
 		with _ -> ()
 	in
+
 	let read_last_check_data () =
 		try
 			(* file should contain last_checkout_time and last_days_to_expire *)
@@ -71,6 +77,7 @@ let initialise address port edition =
 		with _ ->
 			"", "", 0., Lpe.Days 0, ""
 	in
+
 	let init_lpe () =
 		if edition = "XD" then
 			let last_product, last_edition, last_checkout_time, _, last_server = read_last_check_data () in
@@ -96,6 +103,7 @@ let initialise address port edition =
 			(* 	else *)
 			(* 		Lpe.Unreachable *)
 			(* in *)
+
 			let new_check p e =
 				(* This function should work with all license types *)
 				let result = Lpe.license_check address (Int32.to_int port) p e V6globs.dbv in
@@ -140,6 +148,7 @@ let initialise address port edition =
 				else (* real or grace license *)
 					l
 			in
+
 			let result = search combinations in
 			(* the state need not be set here, as the LPE is shut down immediately *)
 			match result with
@@ -175,6 +184,7 @@ let initialise address port edition =
 			| Lpe.Unreachable ->
 				ignore (V6alert.send_alert Api_messages.v6_comm_error "The license could not be checked out, because the license server could not be reached at the given address/port. Please check the connection details, and verify that the license server is running.");
 				"declined", Lpe.Permanent
+
 		else (* edition <> "XD" *)
 			if Lpe.start address (Int32.to_int port) V6globs.v6product edition V6globs.dbv then begin
 				let result = Lpe.get_license () in
@@ -235,6 +245,7 @@ let initialise address port edition =
 				"declined", Lpe.Permanent
 			end
 	in
+
 	match !state with
 	| Some s ->
 		if s.edition = edition && s.licensed = "real" then begin
@@ -276,8 +287,9 @@ let read_grace_from_file () =
 	with _ -> 0.
 
 let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun () ->
-	(* default is free edition with 30 day grace validity *)
+	(* default is free edition *)
 	let default_license = L.default () in
+	let free_license = {default_license with L.grace="no"; L.expiry=never} in
 	let current_edition = List.assoc "current_edition" additional in
 	let startup = List.mem_assoc "startup" additional && List.assoc "startup" additional = "true" in
 	let get_license edition current_license =
@@ -294,65 +306,18 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 			in
 			match edition' with
 			| E.Free ->
-				if startup || List.mem_assoc "license_file" additional then begin
-					info "Attempting to apply 'free' edition activation key.";
-					let license_file =
-						if List.mem_assoc "license_file" additional then
-							List.assoc "license_file" additional
-						else
-							!LF.filename
-					in
-					debug "License file: %s" !LF.filename;
-					begin try
-						let new_license = LF.do_parse_and_validate license_file in
-						if license_file <> !LF.filename then
-							Unix.rename license_file !LF.filename;
-						info "Holding 'free' edition license with expiry date %s."
-							(Date.to_string
-								 (Date.of_float new_license.L.expiry));
-						new_license
-					with
-					| LF.License_expired l when startup -> l (* keep expired license *)
-					| _ when startup ->
-						(* activation file does not exist or is invalid *)
-						if current_license.L.expiry < default_license.L.expiry then begin
-							info "Existing 'free' license with expiry date %s still in effect."
-								(Date.to_string
-									 (Date.of_float
-										  current_license.L.expiry));
-							{
-								default_license with
-								L.expiry = current_license.L.expiry
-							}
-						end else begin
-							info "Generating 'free' edition grace license, which needs to be activated in 30 days.";
-							default_license
-						end
-					| LF.License_expired l ->
-						raise (V6errors.Error(V6errors.license_expired, []))
-					| LF.License_file_deprecated ->
-						raise (V6errors.Error(V6errors.license_file_deprecated, []))
-					| e ->
-						begin
-							debug "Exception processing license: %s" (Printexc.to_string e);
-							raise (V6errors.Error(V6errors.license_processing_error, []))
-						end
-					end
-				end else if E.of_string current_edition = E.Free then begin
-					info "The host's edition is already 'free', and not applying a new activation key or starting xapi. No change.";
-					current_license
-				end else begin
-					info "Downgrading from '%s' to 'free' edition." current_edition;
-					ignore (shutdown ());
-					(* delete activation key, if it exists *)
-					Unixext.unlink_safe !LF.filename;
-					default_license
+				if startup
+				then begin
+					debug "Applying free edition" ;
+					free_license
 				end
-			| e ->
-				(* Ensure we are not trying to apply an old-style license file here. *)
-				if List.mem_assoc "license_file" additional then
-					raise (V6errors.Error (V6errors.activation_while_not_free, []));
+				else begin
+					debug "Releasing license and applying free edition" ;
+					ignore (shutdown ()) ;
+					free_license
+				end
 
+			| e ->
 				(* Try to get the a v6 license; if one has already been checked out,
 				 * it will be automatically checked back in. *)
 				if E.of_string current_edition = E.Free then
@@ -368,10 +333,6 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 						raise (V6errors.Error (V6errors.missing_connection_details, []))
 				in
 				let license, days_to_expire = initialise address (Int32.of_string port) (v6edition e) in
-
-				(* define "never" as 01-01-2030 *)
-				let start_of_epoch = Unix.gmtime 0. in
-				let never, _ = Unix.mktime {start_of_epoch with Unix.tm_year = 130} in
 
 				(* set expiry date *)
 				let now = Unix.time () in
