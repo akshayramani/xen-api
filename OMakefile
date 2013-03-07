@@ -94,7 +94,14 @@ install-test: $(V6TESTD)
 	mkdir -p $(DESTDIR)/etc/rc.d/init.d
 	$(IPROG) init.d-v6d $(DESTDIR)/etc/rc.d/init.d/v6d
 
+.PHONY: install-mock
+install-mock: $(V6MOCKD)
+	mkdir -p $(LIBEXEC)
+	$(IPROG) $(V6MOCKD) $(LIBEXEC)/v6d
+	mkdir -p $(DESTDIR)/etc/rc.d/init.d
+	$(IPROG) init.d-v6d $(DESTDIR)/etc/rc.d/init.d/v6d
+
 .PHONY: clean
 clean:
 	rm -f *.cmi *.cmx *.cmo *.a *.cma *.cmxa *.run *.opt *.annot *.o *.spot *.spit *.omc *.cmt *.cmti
-	rm -f $(V6D) $(V6TESTD) $(V6D_EGENERA)
+	rm -f $(V6D) $(V6TESTD) $(V6D_EGENERA) $(V6MOCKD)

@@ -9,11 +9,13 @@ RPM_BINDIR = $(RPM_RPMSDIR)/$(DOMAIN0_ARCH_OPTIMIZED)
 build: srpm $(MY_SOURCES)/MANIFEST
 	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bb $(RPM_SPECSDIR)/v6d.spec
 	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bb $(RPM_SPECSDIR)/v6testd.spec
+	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bb $(RPM_SPECSDIR)/v6mockd.spec
 	mkdir -p $(MY_OUTPUT_DIR) $(MY_XENSERVER_PACKAGES)
 	# Deliberately omit the debuginfo RPM (v6d-debuginfo-0...)
 	cp $(RPM_BINDIR)/v6d-0*.rpm $(MY_XENSERVER_PACKAGES)
 	cp $(RPM_BINDIR)/v6testd-0-0.i686.rpm $(MY_OUTPUT_DIR)/v6-test.rpm
 	cp $(RPM_BUILDDIR)/v6testd-0/v6testd $(MY_OUTPUT_DIR)
+	cp $(RPM_BUILDDIR)/v6mockd-0/v6mockd $(MY_OUTPUT_DIR)
 
 .PHONY: srpm
 srpm:
@@ -21,11 +23,14 @@ srpm:
 	cd .. ; \
 	git archive --prefix=v6d-0/ HEAD | bzip2 -c > $(RPM_SOURCESDIR)/v6d-0.tar.bz2 ; \
 	git archive --prefix=v6testd-0/ HEAD | bzip2 -c > $(RPM_SOURCESDIR)/v6testd-0.tar.bz2 ; \
+	git archive --prefix=v6mockd-0/ HEAD | bzip2 -c > $(RPM_SOURCESDIR)/v6mockd-0.tar.bz2 ; \
 	cd mk
 	install ../v6d.spec $(RPM_SPECSDIR)
 	install ../v6testd.spec $(RPM_SPECSDIR)
+	install ../v6mockd.spec $(RPM_SPECSDIR)
 	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bs $(RPM_SPECSDIR)/v6d.spec
 	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bs $(RPM_SPECSDIR)/v6testd.spec
+	$(RPMBUILD) --target $(DOMAIN0_ARCH_OPTIMIZED) -bs $(RPM_SPECSDIR)/v6mockd.spec
 
 $(MY_SOURCES)/MANIFEST: $(MY_SOURCES_DIRSTAMP)
 	rm -f $@
