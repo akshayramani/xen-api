@@ -1,8 +1,9 @@
 (* Mock license file structure:
 	<file> := <line>*
-	<line> := <prod> <quantity> <expiration> <sa_date> <newline>
-	        | <comment>
+	<line> := <prod> <edition> <quantity> <expiration> <sa_date> <newline>
+	        | <comment> <newline>
 	<prod> := "XD" | "XS"
+	<edition> := "SKT" | "ADV" | "ENT" | "PLT"
 	<quantity> := <positive integer>
 	<expiration> := <float> (unix timestamp)
 	<sa_date> := <float> (unix timestamp)
@@ -52,12 +53,15 @@ let reset_state () =
 (* License state, from init file *)
 
 type license_t =
+	(* { prod : [ `XD | `XS_SKT | `XS_ADV | `XS_ENT | `XS_PLT ] *)
 	{ prod : [ `XD | `XS ]
+	; ed : [ `SKT | `ADV | `ENT | `PLT ] option
 	; quantity : int ref
 	; expiry : float
 	; sa_date : string }
 
 let licenses = ref ([] : license_t list)
+let licenses_checked_out = (Hashtbl.create 10 : (string, license_t) Hashtbl.t)
 
 (* Look for mock license files in this order *)
 let mock_license_files = [ "mock.lic"; "/tmp/mock.lic"]
@@ -90,27 +94,47 @@ let read_first_file files =
 		close_in fi ;
 		lines
 
-let prod_of_string = function
-	| "XD" -> `XD
-	| "XS" -> `XS
-	| _ -> failwith "Unknown product"
-
 (* WARNING! Str not thread safe! Switch to re library ASAP! *)
 let split = Str.(split (regexp "[ \t]+"))
+let contains str sub = Str.(string_match (regexp (".*" ^ sub ^ ".*")) str 0)
+
+let prod_of_string p =
+	if contains p "XS" then `XS else
+	if contains p "XD" then `XD else
+	failwith ("Unknown product " ^ p)
+
+let edition_of_string = function
+	| "SKT" -> `SKT
+	| "ADV" -> `ADV
+	| "ENT" -> `ENT
+	| "PLT" -> `PLT
+	| e -> failwith ("Unknown edition " ^ e)
 
 let license_of_string s =
 	let ss = split s in
 	match ss with
 	| comment :: _ when s.[0] = '#' -> None
-	| [p; q; e; s] as line ->
+	| [p; q; x; s] as line ->
 		(try
 			Some { prod = prod_of_string p
+				 ; ed = None
 			     ; quantity = ref (int_of_string q)
-			     ; expiry = float_of_string e
+			     ; expiry = float_of_string x
 			     ; sa_date = s }
 		with _ ->
-			debug "Bad mock license line: %s" (String.concat " " line) ; None)
-	| _ -> None
+			debug "Bad mock license: %s" (String.concat " " line) ; None)
+	| [p; e; q; x; s] as line ->
+		(try
+			Some { prod = prod_of_string p
+			     ; ed = Some (edition_of_string e)
+			     ; quantity = ref (int_of_string q)
+			     ; expiry = float_of_string x
+			     ; sa_date = s }
+		with _ ->
+			debug "Bad mock license: %s" (String.concat " " line) ; None)
+	| line ->
+		debug "Bad mock license: %s" s ;
+		None
 
 let read_mock_license files =
 	read_first_file files
@@ -136,14 +160,14 @@ let read_state_file files =
 		|> fun ss -> try List.hd ss with _ -> None
 
 let init () =
-	debug "Initialising mock LPE" ;
+	info "Initialising mock LPE" ;
 	licenses := read_mock_license mock_license_files ;
 	debug "Read %d mock licenses" (List.length !licenses)
 
 let stop () =
 	match !state with
 	| Some {started = true} ->
-		debug "Stopping mock LPE" ;
+		info "Stopping mock LPE" ;
 		reset_state () ;
 		true
 	| _ ->
@@ -152,8 +176,9 @@ let stop () =
 		false
 
 let start address port product edition dbv =
-	if !state = None then init () ;
-	debug "Starting mock LPE" ;
+	info "Starting mock LPE" ;
+	init () ;
+	(* if !state = None then init () ; *)
 	state := Some {started = true; address = address; port = port; product = product;
 	               edition = edition; dbv = dbv; profile = ""; licensed = false};
 	true
@@ -164,62 +189,153 @@ let days_until_expiry expiry =
 	let seconds_until_expiry = expiry -. Unix.time () in
 	Days (days_of_seconds seconds_until_expiry)
 
-(* TODO finish this. Possible states are:
-	1) rejected license: rejected if not enough licenses of that type
-	2) couldn't contact server: happens if mock state says license server is down
-	3) license granted: right number of the right kind of licenses
-	4) granted grace: grace license granted if license server is down, but we had
-	   previously sucessfully checked out a license of the same type *)
-let checkout_license state product =
-	(* reread mock.state, in case we want to inject the license server going down *)
-	let server_up, _, _ = match read_state_file mock_state_files with
-		| None -> false, "", 0 | Some x -> x in
+let is_server_up () =
+	match read_state_file mock_state_files with
+	| None -> true
+	| Some (up, _, _) -> up
+
+let string_of_prod = function
+	| `XD -> "XD" | `XS -> "XS"
+
+let checkout_license state profile =
 	(* Get the license that matches product, that expires last, or None *)
+	let product = prod_of_string state.product in
+	let edition = edition_of_string state.edition in
 	let license = List.(!licenses
-		|> filter (function | l when l.prod = product -> true | _ -> false)
-		|> filter (function | l when !(l.quantity) = 0 -> true | _ -> false)
+		|> filter (fun l ->
+			debug "XXX l.quantity=%d; l.prod=%s; product=%s; edition=%s"
+				!(l.quantity) (string_of_prod l.prod) state.product state.edition ;
+			!(l.quantity) > 0 && l.prod = product && l.ed = Some edition)
 		|> sort (fun a b -> compare b.expiry a.expiry)
 		|> function | hd :: _ -> Some hd | [] -> None)
 	in
+	let server_up = is_server_up () in
+	debug "XXX found a license? %b. is server up? %b" (license <> None) server_up;
 	match server_up, license with
-	| false, _ -> `unreachable
+	| false, _ ->
+		if state.licensed
+		then `granted_grace
+		else `unreachable
 	| true, None -> `rejected
-	(* XXX when do we give grace licenses? *)
 	| true, Some l -> begin
-		decr l.quantity ;
-		`granted_real (days_until_expiry l.expiry)
+		if Hashtbl.mem licenses_checked_out profile
+		then begin
+			debug "Already checked out mock license for profile %s" profile ;
+			`rejected
 		end
+		else begin
+			decr l.quantity ;
+			Hashtbl.add licenses_checked_out profile l ;
+			`granted_real (days_until_expiry l.expiry)
+		end
+	end
 
 (* TODO this mimics current behaviour. Next we need to have this function
    check out multiple licenses, one for each socket *)
 let get_license () =
+	info "Attempting to get mock license" ;
 	match !state with
 	| Some {licensed = true} ->
 		debug "Cannot get license: a license was already checked out";
 		None, None
 	| Some s when s.started ->
-		let product = prod_of_string s.product in
+		let profile = s.product ^ "_" ^ s.edition ^ "_" ^ "_CCS#" ^ "test_profile_1" in
+		debug "Getting mock license for profile %s" profile ;
 		let result, expiry, licensed =
-			match (checkout_license !state product) with
+			match (checkout_license s profile) with
 			| `rejected -> Rejected, None, false
 			| `unreachable -> Unreachable, None, false
 			| `granted_grace -> Granted_grace, None, true
 			| `granted_real days -> Granted_real, Some days, true
 		in
-		let profile = s.product ^ "_" ^ s.edition ^ "_" ^ "_CCS#" ^ "test_profile_1" in
 		state := Some {s with profile = profile; licensed = licensed};
 		Some result, expiry
 	| _ ->
 		debug "Cannot get license: LPE is not running";
 		None, None
 
-let (release_license: unit -> bool) = fun () -> true
+let do_release_license profile =
+	if not (Hashtbl.mem licenses_checked_out profile)
+	then false (* license not checked out for profile *)
+	else begin
+		let l = Hashtbl.find licenses_checked_out profile in
+		incr l.quantity ;
+		Hashtbl.remove licenses_checked_out profile ;
+		true
+	end
 
-let (component_licensed: string -> checkout_result_t) = fun _ -> Granted_real
+let release_license () =
+	match !state with
+	| Some ({licensed = true} as s) ->
+		info "Releasing mock license; profile: %s" s.profile;
+		let result = do_release_license s.profile in
+		state := Some {s with profile = ""; licensed = false};
+		result
+	| _ ->
+		debug "No license to release";
+		false
 
-let (license_check: string -> int -> string -> string -> string -> checkout_result_t) =
-	fun address port product edition dbv -> Granted_real
+(* XXX *)
+let component_status product component = true
 
-let (get_grace_expiry: string -> int option) = fun _ -> None
+let component_licensed component =
+	match !state with
+	| Some ({started = true} as s) ->
+		info "Checking component status; product %s, component: %s" s.product component;
+		let licensed = component_status s.product component in
+		(match !server_status, licensed with
+		| Up, true ->
+			info "Component is licensed";
+			Granted_real
+		| Up, false ->
+			info "Component NOT licensed";
+			Rejected
+		| Down, true ->
+			info "Component is GRACE licensed";
+			Granted_grace
+		| Down, false ->
+			info "Communication problem";
+			Unreachable
+		| _ -> (* Pattern will never match, as server cannot be Unknown here *)
+			Unreachable)
+	| _ ->
+		debug "Cannot check status: mock LPE is not running";
+		Unreachable
+
+(*let profile_of prod edition =
+	match prod with
+	| "XDS" | "XDT" | "CDIAB" -> `XD
+	| "XS" -> (match edition with
+		| "SKT" -> `XS_SKT
+		| "ADV" -> `XS_ADV
+		| "ENT" -> `XS_ENT
+		| "PLT" -> `XS_PLT
+		| e -> failwith ("unknown xenserver edition " ^ e))
+	| p -> failwith ("unknown product " ^ p) *)
+
+let license_check address port product edition dbv =
+	info "Checking for %s %s" product edition;
+	(* let p = profile_of product edition in *)
+	let p = prod_of_string product in
+	let num_licenses = List.(!licenses
+		|> filter (fun l -> l.prod = p && !(l.quantity) > 0)
+		|> length) in
+	let server_up = is_server_up () in
+	debug "server up? %b maching licenses: %d" server_up num_licenses ;
+	match (is_server_up ()), num_licenses with
+	| false, _ -> debug "Server unreachable"; Unreachable
+	| true, n when n > 0 -> debug "License present"; Granted_real
+	| true, _ -> debug "License not present"; Rejected
+
+let get_grace_expiry product =
+	match !state with
+	| Some {started = true} ->
+		debug "Checking grace expiry";
+		let hours_left = 0 (* XXX get_grace_info_c product *) in
+		debug "hours left: %d" hours_left;
+		Some hours_left
+	| _ ->
+		debug "LPE is not running";
+		None
 
 let write_sa_date () = ()
