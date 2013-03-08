@@ -100,6 +100,8 @@ install-mock: $(V6MOCKD)
 	$(IPROG) $(V6MOCKD) $(LIBEXEC)/v6d
 	mkdir -p $(DESTDIR)/etc/rc.d/init.d
 	$(IPROG) init.d-v6d $(DESTDIR)/etc/rc.d/init.d/v6d
+	mkdir -p $(DESTDIR)/tmp
+	$(IDATA) mock.lic.example $(DESTDIR)/tmp/mock.lic
 
 .PHONY: clean
 clean:

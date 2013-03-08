@@ -1,6 +1,7 @@
 (* Mock license file structure:
 	<file> := <line>*
-	<line> := <prod> <edition> <quantity> <expiration> <sa_date> <newline>
+	<line> := <prod> <quantity> <expiration> <sa_date> <newline>
+	        | <prod> <edition> <quantity> <expiration> <sa_date> <newline>
 	        | <comment> <newline>
 	<prod> := "XD" | "XS"
 	<edition> := "SKT" | "ADV" | "ENT" | "PLT"

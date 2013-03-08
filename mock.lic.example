@@ -1,0 +1,18 @@
+# This file has the following format:
+#
+# <file> := <line>*
+# <line> := <prod> <quantity> <expiration> <sa_date> <newline>
+#         | <prod> <edition> <quantity> <expiration> <sa_date> <newline>
+#         | <comment> <newline>
+# <prod> := "XD" | "XS"
+# <edition> := "SKT" | "ADV" | "ENT" | "PLT"
+# <quantity> := <positive integer>
+# <expiration> := <float> (unix timestamp)
+# <sa_date> := <float> (unix timestamp)
+# <newline> := "\n"
+# <comment> := <whitespace>* "#" <any string>
+
+# Example licenses:
+#XD 5 20300101 20140220
+#XS SKT 5 20300101 20140220
+#XS ADV 5 20140220 20140220

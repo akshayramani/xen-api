@@ -36,5 +36,6 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 /opt/xensource/libexec/v6d
 /etc/rc.d/init.d/v6d
+/tmp/mock.lic
 
 %changelog
