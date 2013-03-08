@@ -50,7 +50,7 @@ OCAML_LINK_FLAGS += $(LPE_LIB)/libLicHelper.a $(LPE_LIB)/libMFLic.a $(LPE_LIB)/l
 
 # The "real" daemon
 
-FILES = lpe v6alert v6globs additional_features edition grace_retry \
+FILES = lpe_functor lpe v6alert v6globs additional_features edition grace_retry \
 	license license_file gpg realv6 v6d
 
 StaticCLibrary(lpe_stubs, lpe_stubs)
@@ -60,13 +60,13 @@ OCamlProgram($(V6D), $(FILES))
 
 # The mock daemon, for component testing
 
-MOCKFILES = edition license license_file gpg v6globs grace_retry \
+MOCKFILES = lpe_functor lpe_mock_stubs edition license license_file gpg v6globs grace_retry \
 	additional_features v6alert realv6 v6mockd lpe_test test_lpe_test
 OCamlProgram($(V6MOCKD), $(MOCKFILES))
 
 # The Egenera daemon (DMC in Free Edition)
 
-EGENERAFILES = lpe v6alert v6globs additional_features edition_egenera \
+EGENERAFILES = lpe_functor lpe v6alert v6globs additional_features edition_egenera \
 	grace_retry license license_file gpg realv6 v6d_egenera
 OCamlProgram($(V6D_EGENERA), $(EGENERAFILES))
 
