@@ -164,17 +164,6 @@ let init () =
 	licenses := read_mock_license mock_license_files ;
 	debug "Read %d mock licenses" (List.length !licenses)
 
-let stop () =
-	match !state with
-	| Some {started = true} ->
-		info "Stopping mock LPE" ;
-		reset_state () ;
-		true
-	| _ ->
-		debug "Cannot stop mock LPE because it was never started";
-		reset_state () ;
-		false
-
 let start address port product edition dbv =
 	info "Starting mock LPE" ;
 	init () ;
@@ -273,6 +262,18 @@ let release_license () =
 		result
 	| _ ->
 		debug "No license to release";
+		false
+
+let stop () =
+	match !state with
+	| Some {started = true} ->
+		info "Stopping mock LPE" ;
+		ignore (release_license ()) ;
+		reset_state () ;
+		true
+	| _ ->
+		debug "Cannot stop mock LPE because it was never started";
+		reset_state () ;
 		false
 
 (* XXX *)
