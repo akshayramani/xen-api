@@ -63,7 +63,11 @@ let free_features =
 let additional_free_features = Lab :: Stage :: StorageLink_site_recovery :: StorageLink ::
 	Web_self_service_manager :: Web_self_service :: Vswitch_controller :: []
 
-let to_features _ = free_features
+let paid_features = [] (* will be [ Hotfix_apply ; RPU ] *)
+
+let to_features = function
+	| Free -> free_features
+	| _ -> paid_features
 
 let to_additional_features _ = additional_free_features
 
