@@ -35,13 +35,21 @@ type license_t =
 	; ed : [ `SKT | `ADV | `ENT | `PLT ] option
 	; quantity : int ref
 	; expiry : float
-	; sa_date : string }
+	; sa_date : float }
 
 let state = ref None
 let licenses = ref ([] : license_t list)
 let licenses_checked_out = (Hashtbl.create 10 : (string, license_t) Hashtbl.t)
 
 let days_of_seconds s = s /. 86400. |> int_of_float (* seconds in day *)
+
+let string_of_timestamp f =
+    let open Unix in
+    let d = gmtime f in
+    Printf.sprintf "%02d%02d%4d"
+        d.tm_mday
+        (d.tm_mon + 1)
+        (d.tm_year + 1900)
 
 (* Look for mock license files in this order *)
 let mock_license_files = [ "mock.lic"; "/tmp/mock.lic"]
@@ -100,7 +108,7 @@ let license_of_string s =
 				 ; ed = None
 			     ; quantity = ref (int_of_string q)
 			     ; expiry = float_of_string x
-			     ; sa_date = s }
+			     ; sa_date = float_of_string s }
 		with _ ->
 			debug "Bad mock license: %s" (String.concat " " line) ; None)
 	| [p; e; q; x; s] as line ->
@@ -109,7 +117,7 @@ let license_of_string s =
 			     ; ed = Some (edition_of_string e)
 			     ; quantity = ref (int_of_string q)
 			     ; expiry = float_of_string x
-			     ; sa_date = s }
+			     ; sa_date = float_of_string s }
 		with _ ->
 			debug "Bad mock license: %s" (String.concat " " line) ; None)
 	| line ->
@@ -153,6 +161,22 @@ let is_server_up () =
 let string_of_prod = function
 	| `XD -> "XD" | `XS -> "XS"
 
+let string_of_edition = function
+	| Some `SKT -> "SKT" | Some `ADV -> "ADV"
+	| Some `ENT -> "ENT" | Some `PLT -> "PLT"
+	| None -> "None"
+
+let print_license_state l =
+	debug "Current licenses:" ;
+	debug "prod: %s; ed: %s; quant: %d; exp: %s; sa: %s"
+		(string_of_prod l.prod)
+		(string_of_edition l.ed)
+		!(l.quantity)
+		(string_of_timestamp l.expiry)
+		(string_of_timestamp l.sa_date) ;
+	debug "License profiles checked out:" ;
+	Hashtbl.iter (fun p _ -> debug "%s" p) licenses_checked_out
+
 let split_profile profile =
 	debug "Splitting profile '%s'" profile ;
 	let i_prod = String.index profile '_' in
@@ -167,20 +191,32 @@ let reset_state () =
 	state := Some {started = false; address = "localhost"; port = 27000; product = "";
 	               edition = ""; dbv = ""; profile = ""; licensed = false}
 
+(* callback_fd set by callback monitor thread in Lpe_functor, so protect
+   it with a mutext and condition *)
+let callback_m = Mutex.create ()
+let callback_c = Condition.create ()
 let callback_fd = ref None
 
 let set_pipe i =
 	debug "Setting callback pipe to %d" i ;
-	callback_fd := Some (Unixext.file_descr_of_int i)
+	Mutex.lock callback_m ;
+	callback_fd := Some (Unixext.file_descr_of_int i) ;
+	Condition.signal callback_c ;
+	Mutex.unlock callback_m
 
 let alloc_and_set_cache_dir d =
 	debug "Prentending to set cache dir to %s" d
 
 let write_to_callback_pipe msg =
+	Mutex.lock callback_m ;
 	if msg <> "" then
-	match !callback_fd with
+	while !callback_fd = None do
+		Condition.wait callback_c callback_m ;
+	done ;
+	(match !callback_fd with
 	| None -> failwith "Callback thread not set"
-	| Some fd -> Unixext.really_write fd msg 0 1
+	| Some fd -> Unixext.really_write fd msg 0 1) ;
+	Mutex.unlock callback_m
 
 let start_c address port product edition dbv =
 	debug "Starting mock LPE engine" ;
@@ -189,23 +225,23 @@ let start_c address port product edition dbv =
 	               edition = edition; dbv = dbv; profile = ""; licensed = false};
 	(* XXX if address,port are different than mock.state, we should return "d". *)
 	write_to_callback_pipe "u" ;
+	List.iter print_license_state !licenses ;
 	true
 
-let stop_c () = state := None ; true
+let stop_c () =
+	state := None ;
+	List.iter print_license_state !licenses ;
+	true
 
 let checkout_license state profile =
 	(* Get the license that matches product, that expires last, or None *)
 	let product, edition = split_profile profile in
 	let license = List.(!licenses
-		|> filter (fun l ->
-			debug "XXX l.quantity=%d; l.prod=%s; profile=%s"
-				!(l.quantity) (string_of_prod l.prod) profile ;
-			!(l.quantity) > 0 && l.prod = product && l.ed = Some edition)
+		|> filter (fun l -> !(l.quantity) > 0 && l.prod = product && l.ed = Some edition)
 		|> sort (fun a b -> compare b.expiry a.expiry)
 		|> function | hd :: _ -> Some hd | [] -> None)
 	in
 	let server_up = is_server_up () in
-	debug "XXX found a license? %b. is server up? %b" (license <> None) server_up;
 	match server_up, license with
 	| false, _ ->
 		if state.licensed
@@ -244,6 +280,7 @@ let get_license_c profile =
 			| `granted_real d -> real_license d, true
 		in
 		state := Some {s with profile = profile; licensed = licensed};
+		List.iter print_license_state !licenses ;
 		return
 
 let do_release_license profile =
@@ -262,14 +299,17 @@ let release_license_c profile =
 		info "Releasing mock license; profile: %s" profile;
 		let result = do_release_license profile in
 		state := Some {s with profile = ""; licensed = false};
+		List.iter print_license_state !licenses ;
 		result
 	| _ ->
 		debug "No license to release";
+		List.iter print_license_state !licenses ;
 		false
 
 (* Is a license with (product, edition, dbv) present? Used for XD licenses. *)
 let license_check_c address port product edition dbv =
 	info "Checking for %s %s" product edition;
+	List.iter print_license_state !licenses ;
 	(* let p = profile_of product edition in *)
 	let p = prod_of_string product in
 	let num_licenses = List.(!licenses
@@ -285,5 +325,5 @@ let license_check_c address port product edition dbv =
 (* This is currently unused in realv6. *)
 let component_status_c s1 s2 = 0
 
-(* XXX hours until grace license expires. Don't care about this right now. *)
+(* Hours until grace license expires. Don't care about this right now. *)
 let get_grace_info_c s = 30 * 24

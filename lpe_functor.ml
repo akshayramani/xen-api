@@ -47,6 +47,29 @@ let expiry_t_of_string = function
 	| "Permanent" -> Permanent
 	| d -> Days (int_of_string d)
 
+(* Some helper functions *)
+
+let int_of_checkout_result_t = function
+	| Granted_real _ -> 3
+	| Granted_grace -> 2
+	| Unreachable -> 1
+	| Rejected -> 0
+
+let min_of_result a b =
+	let ai = int_of_checkout_result_t a
+	and bi = int_of_checkout_result_t b in
+	if ai <= bi
+	then a else b
+
+let min_of_expiry_option a b =
+	match a,b with
+	| None, _ -> a
+	| _, None -> b
+	| Some (Days a_), Some (Days b_) ->
+		if a_ <= b_ then a else b
+	| _, Some Permanent -> a
+	| Some Permanent, _ -> b
+
 (* Stuff for tracking the server status in the callback thread *)
 
 type server_status_t = Unknown | Up | Down
@@ -56,22 +79,25 @@ let server_status = ref Unknown
 
 (* The state of the LPE *)
 
-type state_t =
-	{
-		started: bool;
-		address: string;
-		port: int;
-		product: string;
-		edition: string;
-		dbv: string;
-		profile: string;
-		licensed: bool;
-	}
+type state_t = {
+	started: bool;
+	address: string;
+	port: int;
+	product: string;
+	edition: string;
+	dbv: string;
+	profile: string list;
+	licensed: bool;
+	sockets: int;
+}
+
 let state = ref None	(* None means "not initialised"; init needs to be called *)
 
 let reset_state () =
+	let sockets = match !state with | None -> 1 | Some s -> s.sockets in
 	state := Some {started = false; address = ""; port = 0; product = "";
-		edition = ""; dbv = ""; profile = ""; licensed = false};
+		edition = ""; dbv = ""; profile = []; licensed = false;
+		sockets = sockets};
 	Mutex.lock m;
 	server_status := Unknown;
 	Mutex.unlock m
@@ -138,15 +164,20 @@ let init () =
 	ignore (Thread.create monitor_callbacks ())
 
 
-let start address port product edition dbv =
-	if !state = None then
+let start address port product edition dbv sockets =
+	if !state = None then begin
 		init ();
+		match !state with
+		| None -> ()
+		| Some s ->
+			state := Some {s with sockets = sockets}
+	end ;
 
 	debug "Starting LPE";
 	let result = start_c address port product edition dbv in
 	if result = true then
 		state := Some {started = true; address = address; port = port; product = product;
-			edition = edition; dbv = dbv; profile = ""; licensed = false};
+			edition = edition; dbv = dbv; profile = []; licensed = false; sockets = sockets};
 	result
 
 
@@ -185,67 +216,96 @@ let write_sa_date () =
 		debug "Caught exception in write_sa_date; SA date not written to file."
 
 
+let release_license () =
+	match !state with
+	| Some ({licensed = true} as s) ->
+		let release profile =
+			debug "Releasing license; profile: %s" profile;
+			release_license_c profile in
+		let results = List.map release s.profile in
+		state := Some {s with profile = []; licensed = false};
+		List.fold_left (&&) true results
+	| _ ->
+		debug "No license to release";
+		false
+
+
+let get_license s identifier =
+	(* The license profile is a special string needed by the GetLicense call of the LPE
+	 * It contains the edition and a unique identifier (see LPE API docs on wiki). *)
+	let profile = s.product ^ "_" ^ s.edition ^ "_CCS#" ^ identifier in
+	debug "Checking out license; profile: %s" profile;
+
+	let result, expiry, licensed =
+		match get_license_c profile with
+		| 2, _, _ ->
+			(* License server rejected the request *)
+			debug "reqStatus = 2: license rejected";
+			(* release is needed, as license request is kept in LPE *)
+			ignore (release_license_c profile);
+			Rejected, None, false
+		| reqStatus, _, _ when reqStatus > 2 ->
+			(* License server could not be reached *)
+			debug "reqStatus = %d: license server unreachable" reqStatus;
+			Unreachable, None, false
+		| reqStatus, pLicenseGiven, days_to_expire ->
+			(* Obtained license *)
+			debug "reqStatus = %d, pLicenseGiven = %d, days_to_expire = %d"
+				reqStatus pLicenseGiven days_to_expire;
+			(* Wait for server status to settle *)
+			Mutex.lock m;
+			if !server_status = Unknown then
+				Condition.wait c m;
+			let server = !server_status in
+			Mutex.unlock m;
+			match server with
+			| Up ->
+				debug "Checked out a real license";
+				let expiry = if days_to_expire = -1 then Permanent else Days days_to_expire in
+				Granted_real, Some expiry, true
+			| _ -> (* Can only be Down here, not Unknown *)
+				debug "Got a grace license";
+				Granted_grace, None, true
+	in
+	debug "Writing SA date to file";
+	write_sa_date ();
+	state := Some {s with profile = profile :: s.profile};
+	(result, expiry)
+
+
 let get_license () =
 	match !state with
 	| Some {licensed = true} ->
 		debug "Cannot get license: a license was already checked out";
 		None, None
 	| Some s when s.started = true ->
-		(* The license profile is a special string needed by the GetLicense call of the LPE
-		 * It contains the edition and a unique identifier (see LPE API docs on wiki). *)
-		let identifier = String.sub (Uuid.to_string (Uuid.make_uuid ())) 0 13 in
-		let profile = s.product ^ "_" ^ s.edition ^ "_CCS#" ^ identifier in
-		debug "Checking out license; profile: %s" profile;
-		let result, expiry, licensed =
-			match get_license_c profile with
-			| 2, _, _ ->
-				(* License server rejected the request *)
-				debug "reqStatus = 2: license rejected";
-				(* release is needed, as license request is kept in LPE *)
-				ignore (release_license_c profile);
-				Rejected, None, false
-			| reqStatus, _, _ when reqStatus > 2 ->
-				(* License server could not be reached *)
-				debug "reqStatus = %d: license server unreachable" reqStatus;
-				Unreachable, None, false
-			| reqStatus, pLicenseGiven, days_to_expire ->
-				(* Obtained license *)
-				debug "reqStatus = %d, pLicenseGiven = %d, days_to_expire = %d"
-					reqStatus pLicenseGiven days_to_expire;
-				(* Wait for server status to settle *)
-				Mutex.lock m;
-				if !server_status = Unknown then
-					Condition.wait c m;
-				let server = !server_status in
-				Mutex.unlock m;
-				match server with
-				| Up ->
-					debug "Checked out a real license";
-					let expiry = if days_to_expire = -1 then Permanent else Days days_to_expire in
-					Granted_real, Some expiry, true
-				| _ -> (* Can only be Down here, not Unknown *)
-					debug "Got a grace license";
-					Granted_grace, None, true
-		in
-		debug "Writing SA date to file";
-		write_sa_date ();
-		state := Some {s with profile = profile; licensed = licensed};
-		Some result, expiry
+		let id = String.sub (Uuid.to_string (Uuid.make_uuid ())) 0 13 in
+		let rec do_get_licenses i acc =
+			if i <= 0
+			then Some acc
+			else
+				let num = "_" ^ (string_of_int i) in
+				let r, e = get_license s (id ^ num) in
+				(* Bail out if we get Unreachable or Rejected *)
+				if r = Unreachable || r = Rejected
+				then None
+				else do_get_licenses (i-1) ((r,e) :: acc) in
+		(match do_get_licenses s.sockets [] with
+		| None ->
+			debug "Cannot check out enough licenses" ;
+			ignore (release_license ()) ;
+			None, None
+		| Some results ->
+			let result, expiry = List.fold_left
+				(fun (r1,e1) (r2,e2) ->
+					(min_of_result r1 r2, min_of_expiry_option e1 e2))
+				(Granted_real, Some Permanent) results in
+			let licensed = List.length s.profile = s.sockets in
+			state := Some {s with licensed = licensed} ;
+			Some result, expiry)
 	| _ ->
 		debug "Cannot get license: LPE is not running";
 		None, None
-
-
-let release_license () =
-	match !state with
-	| Some ({licensed = true} as s) ->
-		debug "Releasing license; profile: %s" s.profile;
-		let result = release_license_c s.profile in
-		state := Some {s with profile = ""; licensed = false};
-		result
-	| _ ->
-		debug "No license to release";
-		false
 
 
 let component_licensed component =

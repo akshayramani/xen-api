@@ -26,7 +26,7 @@ val string_of_expiry_t : expiry_t -> string
 val init : unit -> unit
 
 (** Initialise and start LPE. *)
-val start: string -> int -> string -> string -> string -> bool
+val start: string -> int -> string -> string -> string -> int -> bool
 
 (** Check out license. *)
 val get_license: unit -> checkout_result_t option * expiry_t option

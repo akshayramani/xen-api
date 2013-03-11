@@ -222,7 +222,7 @@ let checkout_license state profile =
 
 (* TODO this mimics current behaviour. Next we need to have this function
    check out multiple licenses, one for each socket *)
-let get_license () =
+let get_license sockets =
 	info "Attempting to get mock license" ;
 	match !state with
 	| Some {licensed = true} ->

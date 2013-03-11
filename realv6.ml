@@ -34,9 +34,9 @@ let shutdown () =
 	Mutex.execute m (fun () -> xd_grace_thread := false);
 	Lpe.stop ()
 
-let initialise address port edition =
-	debug "initialise (address = %s, port = %d, edition = %s)"
-		address (Int32.to_int port) edition;
+let initialise address port edition sockets =
+	debug "initialise (address = %s, port = %d, edition = %s, sockets = %d)"
+		address (Int32.to_int port) edition sockets;
 
 	(* check edition  *)
 	if not (List.mem edition ["SKT"; "STD"; "ADV"; "ENT"; "PLT"; "XD"]) then
@@ -186,7 +186,7 @@ let initialise address port edition =
 				"declined", Lpe.Permanent
 
 		else (* edition <> "XD" *)
-			if Lpe.start address (Int32.to_int port) V6globs.v6product edition V6globs.dbv then begin
+			if Lpe.start address (Int32.to_int port) V6globs.v6product edition V6globs.dbv sockets then begin
 				let result = Lpe.get_license () in
 				match result with
 				(* Lpe.checkout_result_t option, Lpe.expiry_t option *)
@@ -292,6 +292,11 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 	let free_license = {default_license with L.grace="no"; L.expiry=never} in
 	let current_edition = List.assoc "current_edition" additional in
 	let startup = List.mem_assoc "startup" additional && List.assoc "startup" additional = "true" in
+	let sockets = if List.mem_assoc "sockets" additional
+		then List.assoc "sockets" additional else "" in
+	let sockets = try int_of_string sockets with _ ->
+		debug "Couldn't read number of sockets %s, defaulting to 1" sockets ; 1 in
+
 	let get_license edition current_license =
 		try
 			Grace_retry.cancel (); (* cancel any existing grace-retry timer *)
@@ -332,7 +337,7 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 					with Not_found ->
 						raise (V6errors.Error (V6errors.missing_connection_details, []))
 				in
-				let license, days_to_expire = initialise address (Int32.of_string port) (v6edition e) in
+				let license, days_to_expire = initialise address (Int32.of_string port) (v6edition e) sockets in
 
 				(* set expiry date *)
 				let now = Unix.time () in
