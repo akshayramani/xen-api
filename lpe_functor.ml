@@ -86,18 +86,28 @@ type state_t = {
 	product: string;
 	edition: string;
 	dbv: string;
-	profile: string list;
-	licensed: bool;
+	mutable profile: string list;
+	mutable licensed: bool;
 	sockets: int;
 }
 
-let state = ref None	(* None means "not initialised"; init needs to be called *)
+let state = ref None  (* None means "not initialised"; init needs to be called *)
+let default_state = {
+	started = false;
+	address = "";
+	port = 0;
+	product = "";
+	edition = "";
+	dbv = "";
+	profile = [];
+	licensed = false;
+	sockets = 1;
+}
 
 let reset_state () =
-	let sockets = match !state with | None -> 1 | Some s -> s.sockets in
-	state := Some {started = false; address = ""; port = 0; product = "";
-		edition = ""; dbv = ""; profile = []; licensed = false;
-		sockets = sockets};
+	match (!state) with
+	| None -> state := Some default_state ;
+	| Some s -> state := Some {default_state with sockets = s.sockets} ;
 	Mutex.lock m;
 	server_status := Unknown;
 	Mutex.unlock m
@@ -165,13 +175,7 @@ let init () =
 
 
 let start address port product edition dbv sockets =
-	if !state = None then begin
-		init ();
-		match !state with
-		| None -> ()
-		| Some s ->
-			state := Some {s with sockets = sockets}
-	end ;
+	if !state = None then init () ;
 
 	debug "Starting LPE";
 	let result = start_c address port product edition dbv in
@@ -217,6 +221,7 @@ let write_sa_date () =
 
 
 let release_license () =
+	debug "release_license ()" ;
 	match !state with
 	| Some ({licensed = true} as s) ->
 		let release profile =
@@ -258,6 +263,8 @@ let get_license s identifier =
 				Condition.wait c m;
 			let server = !server_status in
 			Mutex.unlock m;
+			(* We have a license with this profile, so add it to the list *)
+			s.profile <- profile :: s.profile ;
 			match server with
 			| Up ->
 				debug "Checked out a real license";
@@ -269,7 +276,6 @@ let get_license s identifier =
 	in
 	debug "Writing SA date to file";
 	write_sa_date ();
-	state := Some {s with profile = profile :: s.profile};
 	(result, expiry)
 
 
@@ -300,9 +306,14 @@ let get_license () =
 				(fun (r1,e1) (r2,e2) ->
 					(min_of_result r1 r2, min_of_expiry_option e1 e2))
 				(Granted_real, Some Permanent) results in
-			let licensed = List.length s.profile = s.sockets in
-			state := Some {s with licensed = licensed} ;
-			Some result, expiry)
+			(match !state with
+			| None -> None, None (* This really shouldn't happen... *)
+			| Some s ->
+				let num_profiles = List.length s.profile in
+				let licensed = num_profiles = s.sockets in
+				debug "LPE checked out %d of %d required licenses" num_profiles s.sockets ;
+				s.licensed <- licensed ;
+				Some result, expiry))
 	| _ ->
 		debug "Cannot get license: LPE is not running";
 		None, None
