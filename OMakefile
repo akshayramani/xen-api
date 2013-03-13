@@ -1,7 +1,6 @@
 V6D = v6d
 V6TESTD = v6testd
 V6MOCKD = v6mockd
-V6D_EGENERA = v6d_egenera
 
 DESTDIR=$(getenv DESTDIR, $(ROOT)/dist/staging)
 DEBUGDIST=$(DESTDIR)/opt/xensource/debug
@@ -64,12 +63,6 @@ MOCKFILES = lpe_functor lpe_mock_stubs edition license license_file gpg v6globs 
 	additional_features v6alert realv6 v6mockd lpe_test test_lpe_test
 OCamlProgram($(V6MOCKD), $(MOCKFILES))
 
-# The Egenera daemon (DMC in Free Edition)
-
-EGENERAFILES = lpe_functor lpe v6alert v6globs additional_features edition_egenera \
-	grace_retry license license_file gpg realv6 v6d_egenera
-OCamlProgram($(V6D_EGENERA), $(EGENERAFILES))
-
 # Test program
 
 #BYTE_ENABLED = true
@@ -78,7 +71,7 @@ OCamlProgram($(V6D_EGENERA), $(EGENERAFILES))
 #test-lpe: v6d lpe_test.cma
 #	$(OCAMLFIND) $(OCAMLMKTOP) -o lpe_test_top lpe_test.cma
 
-.DEFAULT: $(V6D) $(V6TESTD) $(V6D_EGENERA) $(V6MOCKD)
+.DEFAULT: $(V6D) $(V6TESTD) $(V6MOCKD)
 
 .PHONY: install
 install: $(V6D)
@@ -106,4 +99,4 @@ install-mock: $(V6MOCKD)
 .PHONY: clean
 clean:
 	rm -f *.cmi *.cmx *.cmo *.a *.cma *.cmxa *.run *.opt *.annot *.o *.spot *.spit *.omc *.cmt *.cmti
-	rm -f $(V6D) $(V6TESTD) $(V6D_EGENERA) $(V6MOCKD)
+	rm -f $(V6D) $(V6TESTD) $(V6MOCKD)
