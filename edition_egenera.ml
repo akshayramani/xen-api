@@ -16,7 +16,7 @@ open Additional_features
 
 (* Editions definitions *)
 
-type edition = Free | Socket | Advanced | Enterprise | Enterprise_xd | Platinum
+type edition = Free | Socket | XenDesktop | Advanced | Enterprise | Platinum
 exception Undefined_edition of string
 
 let of_string = function
@@ -24,7 +24,7 @@ let of_string = function
 	| "per-socket" -> Socket
 	| "advanced" -> Advanced
 	| "enterprise" | "XE Enterprise" -> Enterprise
-	| "enterprise-xd" -> Enterprise_xd
+	| "xendesktop" -> XenDesktop
 	| "platinum" -> Platinum
 	| x -> raise (Undefined_edition x)
 
@@ -33,7 +33,7 @@ let to_string = function
 	| Socket -> "per-socket"
 	| Advanced -> "advanced"
 	| Enterprise -> "enterprise"
-	| Enterprise_xd -> "enterprise-xd"
+	| XenDesktop -> "xendesktop"
 	| Platinum -> "platinum"
 
 let to_short_string = function
@@ -41,7 +41,7 @@ let to_short_string = function
 	| Socket -> "SKT"
 	| Advanced -> "ADV"
 	| Enterprise -> "ENT"
-	| Enterprise_xd -> "XD"
+	| XenDesktop -> "XD"
 	| Platinum -> "PLT"
 
 let to_marketing_name = function
@@ -49,7 +49,7 @@ let to_marketing_name = function
 	| Socket -> "Citrix XenServer Licensed"
 	| Advanced -> "Citrix XenServer Advanced Edition"
 	| Enterprise -> "Citrix XenServer Enterprise Edition"
-	| Enterprise_xd -> "Citrix XenServer for XenDesktop"
+	| XenDesktop -> "Citrix XenServer for XenDesktop"
 	| Platinum -> "Citrix XenServer Platinum Edition"
 
 (* Editions to features *)
@@ -67,18 +67,18 @@ let additional_platinum_features = Lab :: Stage :: StorageLink_site_recovery :: 
 let to_features = function
 	| Free -> platinum_features
 	| Advanced -> advanced_features
-	| Enterprise | Enterprise_xd -> enterprise_features
+	| Enterprise | XenDesktop -> enterprise_features
 	| Platinum | Socket -> platinum_features
 
 let to_additional_features = function
 	| Free -> additional_platinum_features
 	| Advanced -> additional_advanced_features
-	| Enterprise | Enterprise_xd -> additional_enterprise_features
+	| Enterprise | XenDesktop -> additional_enterprise_features
 	| Platinum | Socket -> additional_platinum_features
 	
 let to_int = function
 	| Platinum -> 30
-	| Enterprise | Enterprise_xd -> 20
+	| Enterprise | XenDesktop -> 20
 	| Advanced -> 10
 	| Socket -> 5
 	| Free -> 0

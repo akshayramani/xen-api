@@ -18,7 +18,7 @@ open D
 (* This module could do with some refactoring to reuse the almost identical code in realv6.ml! *)
 
 open Edition
-let supported_editions = [Free; Socket; Enterprise_xd; Advanced; Enterprise; Platinum]
+let supported_editions = [Free; Socket; XenDesktop; Advanced; Enterprise; Platinum]
 
 module L  = License.Make(Edition)
 module LF = License_file.Make(Edition)

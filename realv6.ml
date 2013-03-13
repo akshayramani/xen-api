@@ -265,13 +265,13 @@ let initialise address port edition sockets =
 	| None -> init_lpe ()
 
 
-let supported_editions = [E.Free; E.Socket; E.Enterprise_xd;
+let supported_editions = [E.Free; E.Socket; E.XenDesktop;
                           E.Advanced; E.Enterprise; E.Platinum]
 
 let v6edition = function
 	| E.Advanced -> "ADV"
 	| E.Socket -> "SKT"
-	| E.Enterprise_xd -> "XD"
+	| E.XenDesktop -> "XD"
 	| E.Enterprise -> "ENT"
 	| E.Platinum -> "PLT"
 	| E.Free -> ""
