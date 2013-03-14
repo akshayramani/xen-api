@@ -177,6 +177,15 @@ let init () =
 let start address port product edition dbv sockets =
 	if !state = None then init () ;
 
+	(* FIST point for sockets *)
+	let sockets =
+		try
+			let fist = open_in "/tmp/sockets" in
+			let fist_sockets = input_line fist in
+			let fist_sockets = int_of_string fist_sockets in
+			max fist_sockets sockets
+		with _ -> sockets in
+
 	debug "Starting LPE";
 	let result = start_c address port product edition dbv in
 	if result = true then
