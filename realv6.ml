@@ -270,7 +270,7 @@ let supported_editions = [E.Free; E.Socket; E.XenDesktop;
 
 let v6edition = function
 	| E.Advanced -> "ADV"
-	| E.Socket -> "SKT"
+	| E.Socket -> "STD"
 	| E.XenDesktop -> "XD"
 	| E.Enterprise -> "ENT"
 	| E.Platinum -> "PLT"

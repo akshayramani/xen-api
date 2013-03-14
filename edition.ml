@@ -38,12 +38,12 @@ let to_string = function
 
 let to_short_string = function
 	| Free -> "FREE"
-	| Socket -> "SKT"
+	| Socket -> "STD"
 	| XenDesktop -> "XD"
 	| Advanced -> "ADV"
 	| Enterprise -> "ENT"
 	| Platinum -> "PLT"
-	
+
 let to_marketing_name = function
 	| Free -> "Citrix XenServer"
 	| Socket -> "Citrix XenServer Licensed"
