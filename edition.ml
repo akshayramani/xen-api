@@ -67,7 +67,7 @@ let paid_features = [] (* will be [ Hotfix_apply ; RPU ] *)
 
 let to_features = function
 	| Free -> free_features
-	| _ -> paid_features
+	| _ -> paid_features @ free_features
 
 let to_additional_features _ = additional_free_features
 
