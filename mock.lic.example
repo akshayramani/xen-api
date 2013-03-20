@@ -5,7 +5,7 @@
 #         | <prod> <edition> <quantity> <expiration> <sa_date> <newline>
 #         | <comment> <newline>
 # <prod> := "XD" | "XS"
-# <edition> := "SKT" | "ADV" | "ENT" | "PLT"
+# <edition> := "STD" | "ADV" | "ENT" | "PLT"
 # <quantity> := <positive integer>
 # <expiration> := <float> (unix timestamp)
 # <sa_date> := <float> (unix timestamp)
@@ -14,5 +14,6 @@
 
 # Example licenses:
 #XD 5 2030.0101 2014.0220
-#XS SKT 5 2030.0101 2014.0220
+#XS STD 5 2030.0101 2014.0220
+#XS STD 5 2014.0220 2014.0220
 #XS ADV 5 2014.0220 2014.0220

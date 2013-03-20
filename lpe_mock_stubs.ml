@@ -6,7 +6,7 @@ let _proprietary_code_marker = "Citrix proprietary code"
 	        | <prod> <edition> <quantity> <expiration> <sa_date> <newline>
 	        | <comment> <newline>
 	<prod> := "XD" | "XS"
-	<edition> := "SKT" | "ADV" | "ENT" | "PLT"
+	<edition> := "STD" | "ADV" | "ENT" | "PLT"
 	<quantity> := <positive integer>
 	<expiration> := <float> (unix timestamp)
 	<sa_date> := <float> (unix timestamp)
@@ -32,7 +32,7 @@ type state_t =
 
 type license_t =
 	{ prod : [ `XD | `XS ]
-	; ed : [ `SKT | `ADV | `ENT | `PLT ] option
+	; ed : [ `STD | `ADV | `ENT | `PLT ] option
 	; quantity : int ref
 	; expiry : float
 	; sa_date : float }
@@ -90,7 +90,7 @@ let prod_of_string p =
 	failwith ("Unknown product " ^ p)
 
 let edition_of_string = function
-	| "SKT" -> `SKT
+	| "STD" -> `STD
 	| "ADV" -> `ADV
 	| "ENT" -> `ENT
 	| "PLT" -> `PLT
@@ -160,7 +160,7 @@ let string_of_prod = function
 	| `XD -> "XD" | `XS -> "XS"
 
 let string_of_edition = function
-	| Some `SKT -> "SKT" | Some `ADV -> "ADV"
+	| Some `STD -> "STD" | Some `ADV -> "ADV"
 	| Some `ENT -> "ENT" | Some `PLT -> "PLT"
 	| None -> "None"
 
