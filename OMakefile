@@ -1,6 +1,7 @@
 V6D = v6d
 V6TESTD = v6testd
 V6MOCKD = v6mockd
+V6SUITE = v6suite
 
 DESTDIR=$(getenv DESTDIR, $(ROOT)/dist/staging)
 DEBUGDIST=$(DESTDIR)/opt/xensource/debug
@@ -63,15 +64,13 @@ MOCKFILES = lpe_functor lpe_helpers lpe_mock_stubs edition license license_file 
 	grace_retry additional_features v6alert realv6 v6mockd lpe_test test_lpe_test
 OCamlProgram($(V6MOCKD), $(MOCKFILES))
 
-# Test program
+# Test suite
 
-#BYTE_ENABLED = true
-#OCamlLibraryClib(lpe_test, lpe_test, lpe_stubs)
-#.PHONY: test-lpe
-#test-lpe: v6d lpe_test.cma
-#	$(OCAMLFIND) $(OCAMLMKTOP) -o lpe_test_top lpe_test.cma
+BYTE_ENABLED=true
+UNITTESTFILES = v6globs lpe_functor lpe_helpers lpe_mock_stubs edition v6_test_suite
+OCamlProgram($(V6SUITE), $(UNITTESTFILES))
 
-.DEFAULT: $(V6D) $(V6TESTD) $(V6MOCKD)
+.DEFAULT: $(V6D) $(V6TESTD) $(V6MOCKD) $(V6SUITE)
 
 .PHONY: install
 install: $(V6D)

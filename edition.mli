@@ -54,3 +54,8 @@ val equal : edition -> edition -> bool
 (** Return the "least capable" edition (used to determine the pool edition). *)
 val min : edition list -> edition
 
+(** Test that all free features are in the Free edition *)
+val test_all_free_features_in_free : unit -> unit
+
+(** Test that all features are in the Socket edition *)
+val test_all_features_in_paid : unit -> unit

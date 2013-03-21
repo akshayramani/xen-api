@@ -84,3 +84,9 @@ let equal e0 e1 =
 let min l =
 	List.fold_left (fun m e -> if to_int e < to_int m then e else m) Platinum l
 
+(* Unit tests which test unexported values *)
+let test_all_free_features_in_free () =
+	OUnit.assert_bool "all free features in free" (free_features = (to_features Free))
+
+let test_all_features_in_paid () =
+	OUnit.assert_bool "all features in paid" (free_features @ paid_features = (to_features Socket))
