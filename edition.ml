@@ -22,6 +22,7 @@ exception Undefined_edition of string
 let of_string = function
 	| "free" | "XE Express" -> Free
 	| "per-socket" -> Socket
+	| "enterprise-xd"
 	| "xendesktop" -> XenDesktop
 	| "advanced" -> Advanced
 	| "enterprise" | "XE Enterprise" -> Enterprise
