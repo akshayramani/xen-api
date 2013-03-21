@@ -64,7 +64,7 @@ let free_features =
 let additional_free_features = Lab :: Stage :: StorageLink_site_recovery :: StorageLink ::
 	Web_self_service_manager :: Web_self_service :: Vswitch_controller :: []
 
-let paid_features = [] (* will be [ Hotfix_apply ; RPU ] *)
+let paid_features = [Hotfix_apply]
 
 let to_features = function
 	| Free -> free_features
@@ -86,8 +86,17 @@ let min l =
 	List.fold_left (fun m e -> if to_int e < to_int m then e else m) Platinum l
 
 (* Unit tests which test unexported values *)
+
 let test_all_free_features_in_free () =
-	OUnit.assert_bool "all free features in free" (free_features = (to_features Free))
+	let open OUnit in
+	List.(iter (fun f ->
+		"all free features in free" @? (mem f (to_features Free)))
+		free_features) ;
+	"Hotfix_apply not in free" @? List.(not (mem Hotfix_apply (to_features Free)))
 
 let test_all_features_in_paid () =
-	OUnit.assert_bool "all features in paid" (free_features @ paid_features = (to_features Socket))
+	let open OUnit in
+	List.(iter (fun f ->
+		"all features in paid" @? (mem f (to_features Socket)))
+		(free_features @ paid_features)) ;
+	"Hotfix_apply in paid" @? List.(mem Hotfix_apply (to_features Socket))
