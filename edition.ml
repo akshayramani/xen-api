@@ -61,8 +61,8 @@ let free_features =
 	No_platform_filter :: VMPR :: VIF_locking :: Storage_motion ::
 	Netapp :: Equalogic :: WLB :: RBAC :: Checkpoint :: GPU :: DR :: []
 
-let additional_free_features = Lab :: Stage :: StorageLink_site_recovery :: StorageLink ::
-	Web_self_service_manager :: Web_self_service :: Vswitch_controller :: []
+let additional_free_features = [Lab; Stage; StorageLink_site_recovery;
+	StorageLink; Vswitch_controller]
 
 let paid_features = [Hotfix_apply]
 
