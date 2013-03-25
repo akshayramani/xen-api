@@ -265,15 +265,11 @@ let initialise address port edition sockets =
 	| None -> init_lpe ()
 
 
-let supported_editions = [E.Free; E.Socket; E.XenDesktop;
-                          E.Advanced; E.Enterprise; E.Platinum]
+let supported_editions = [E.Free; E.Socket; E.XenDesktop]
 
 let v6edition = function
-	| E.Advanced -> "ADV"
 	| E.Socket -> "STD"
 	| E.XenDesktop -> "XD"
-	| E.Enterprise -> "ENT"
-	| E.Platinum -> "PLT"
 	| E.Free -> ""
 
 let write_grace_to_file grace_expiry =

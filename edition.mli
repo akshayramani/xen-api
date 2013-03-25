@@ -20,9 +20,6 @@ type edition =
 	| Free            (** XenServer Free Edition *)
 	| Socket          (** XenServer Licensed Per-socket *)
 	| XenDesktop      (** XenServer Enterprise Edition for XenDesktop *)
-	| Advanced        (** XenServer Advanced Edition *)
-	| Enterprise      (** XenServer Enterprise Edition *)
-	| Platinum        (** XenServer Platinum Edition *)
 
 (** Raised by {!of_string} if the given string does not map to an edition. *)
 exception Undefined_edition of string

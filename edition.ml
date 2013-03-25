@@ -16,7 +16,7 @@ open Additional_features
 
 (* Editions definitions *)
 
-type edition = Free | Socket | XenDesktop | Advanced | Enterprise | Platinum
+type edition = Free | Socket | XenDesktop
 exception Undefined_edition of string
 
 let of_string = function
@@ -24,34 +24,22 @@ let of_string = function
 	| "per-socket" -> Socket
 	| "enterprise-xd"
 	| "xendesktop" -> XenDesktop
-	| "advanced" -> Advanced
-	| "enterprise" | "XE Enterprise" -> Enterprise
-	| "platinum" -> Platinum
 	| x -> raise (Undefined_edition x)
 
 let to_string = function
 	| Free -> "free"
 	| Socket -> "per-socket"
 	| XenDesktop -> "xendesktop"
-	| Advanced -> "advanced"
-	| Enterprise -> "enterprise"
-	| Platinum -> "platinum"
 
 let to_short_string = function
 	| Free -> "FREE"
 	| Socket -> "STD"
 	| XenDesktop -> "XD"
-	| Advanced -> "ADV"
-	| Enterprise -> "ENT"
-	| Platinum -> "PLT"
 
 let to_marketing_name = function
 	| Free -> "Citrix XenServer"
 	| Socket -> "Citrix XenServer Licensed"
 	| XenDesktop -> "Citrix XenServer for XenDesktop"
-	| Advanced -> "Citrix XenServer Advanced Edition"
-	| Enterprise -> "Citrix XenServer Enterprise Edition"
-	| Platinum -> "Citrix XenServer Platinum Edition"
 
 (* Editions to features *)
 
@@ -73,9 +61,7 @@ let to_features = function
 let to_additional_features _ = additional_free_features
 
 let to_int = function
-	| Platinum -> 30
-	| Enterprise | XenDesktop -> 20
-	| Advanced -> 10
+	| XenDesktop -> 10
 	| Socket -> 5
 	| Free -> 0
 
@@ -83,7 +69,7 @@ let equal e0 e1 =
 	to_int e0 = to_int e1
 
 let min l =
-	List.fold_left (fun m e -> if to_int e < to_int m then e else m) Platinum l
+	List.fold_left (fun m e -> if to_int e < to_int m then e else m) XenDesktop l
 
 (* Unit tests which test unexported values *)
 
