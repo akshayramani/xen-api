@@ -24,3 +24,6 @@ let set_expiry_date () = fistpoint_read "set_expiry_date"
 (** Reduce the retry period after obtaining a grace license from 1h to 5min *)
 let reduce_grace_retry_period () = fistpoint "reduce_grace_retry_period"
 
+(** Change the license re-apply period to a given number of seconds *)
+let set_reapply_period () = fistpoint_read "set_reapply_period"
+

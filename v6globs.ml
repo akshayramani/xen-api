@@ -21,6 +21,12 @@ let grace_retry_period = 3600.         (* 1h *)
  *  is active. *)
 let reduced_grace_retry_period = 300.  (* 5min *)
 
+(** After a license has been checked out, it will be re-checked out after this
+ *  many seconds, just to apply any new license (with later expiry date) that may
+ *  have been installed.
+ *  Defaults to 24h. May be overridden by a FIST point. *)
+let reapply_period = 3600. *. 24. (* a day's worth of seconds *)
+
 (** Toggle between beta or GA licenses *)
 let beta = false
 

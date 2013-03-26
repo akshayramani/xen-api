@@ -353,6 +353,17 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 					end
 				in
 
+				let reapply_period =
+					match V6fist.set_reapply_period () with
+					| None -> V6globs.reapply_period
+					| Some period ->
+						try
+							float_of_string (String.strip String.isspace period)
+						with _ ->
+							debug "Failed to interpret re-apply period from FIST point: \"%s\"" period;
+							V6globs.reapply_period
+				in
+
 				let upgrade_grace = read_grace_from_file () > Unix.time () in
 				if license = "real" || license = "grace" then begin
 					info "Checked out %s %s license from license server." edition license;
@@ -381,13 +392,15 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 							L.expiry = expires;
 							L.grace = "regular grace";
 						}
-					end else
+					end else begin
+						Reapply.start edition reapply_period;
 						{
 							default_license with
 							L.sku = edition;
 							L.sku_marketing_name = name;
 							L.expiry = expires
 						}
+					end
 				end else if edition = current_edition && upgrade_grace then begin
 					info "No %s license is available, but we are still in the upgrade grace period." current_edition;
 					{current_license with L.grace = "upgrade grace"}
