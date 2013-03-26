@@ -247,21 +247,10 @@ let initialise address port edition sockets =
 	in
 
 	match !state with
-	| Some s ->
-		if s.edition = edition && s.licensed = "real" then begin
-			debug "Already initialised with same edition; returning state";
-			match s.days_to_expire with
-			| Lpe.Days days_to_expire ->
-				let days_past = int_of_float
-					((Unix.time () -. s.timestamp) /. 3600. /. 24.) in
-				let days_to_expire = days_to_expire - days_past in
-				s.licensed, Lpe.Days days_to_expire
-			| Lpe.Permanent -> s.licensed, s.days_to_expire
-		end else begin
-			debug "Already initialised, but with different edition; shutting down first";
-			ignore (shutdown ());
-			init_lpe ()
-		end
+	| Some _ ->
+		debug "Already initialised; shutting down first to release current licenses";
+		ignore (shutdown ());
+		init_lpe ()
 	| None -> init_lpe ()
 
 
@@ -353,17 +342,6 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 					end
 				in
 
-				let reapply_period =
-					match V6fist.set_reapply_period () with
-					| None -> V6globs.reapply_period
-					| Some period ->
-						try
-							float_of_string (String.strip String.isspace period)
-						with _ ->
-							debug "Failed to interpret re-apply period from FIST point: \"%s\"" period;
-							V6globs.reapply_period
-				in
-
 				let upgrade_grace = read_grace_from_file () > Unix.time () in
 				if license = "real" || license = "grace" then begin
 					info "Checked out %s %s license from license server." edition license;
@@ -393,7 +371,18 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 							L.grace = "regular grace";
 						}
 					end else begin
+						let reapply_period =
+							match V6fist.set_reapply_period () with
+							| None -> V6globs.reapply_period
+							| Some period ->
+								try
+									float_of_string (String.strip String.isspace period)
+								with _ ->
+									debug "Failed to interpret re-apply period from FIST point: \"%s\"" period;
+									V6globs.reapply_period
+						in
 						Reapply.start edition reapply_period;
+
 						{
 							default_license with
 							L.sku = edition;
