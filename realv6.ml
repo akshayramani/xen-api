@@ -345,7 +345,7 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 				(* check fist point *)
 				let expires =
 					(* CA-33155: FIST point may only set an expiry date earlier than the actual one *)
-					begin match Xapi_fist.set_expiry_date () with
+					begin match V6fist.set_expiry_date () with
 						| None -> expires
 						| Some d ->
 							let fist_date = Date.to_float (Date.of_string d) in
@@ -361,7 +361,7 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 					let name = E.to_marketing_name edition' in
 					if license = "grace" then begin
 						let grace_retry_period =
-							if Xapi_fist.reduce_grace_retry_period () then
+							if V6fist.reduce_grace_retry_period () then
 								V6globs.reduced_grace_retry_period
 							else
 								V6globs.grace_retry_period
@@ -369,7 +369,7 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 						Reapply.start edition grace_retry_period;
 
 						let expires =
-							if Xapi_fist.reduce_grace_period () then
+							if V6fist.reduce_grace_period () then
 								now +. (15. *. 60.)
 							else
 								expires
