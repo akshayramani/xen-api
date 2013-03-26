@@ -54,5 +54,8 @@ val min : edition list -> edition
 (** Test that all free features are in the Free edition *)
 val test_all_free_features_in_free : unit -> unit
 
-(** Test that all features are in the Socket edition *)
-val test_all_features_in_paid : unit -> unit
+(** Test that all additional free features are in the Free edition *)
+val test_all_additional_free_features_in_free : unit -> unit
+
+(** Test that all additional features are in the Socket edition *)
+val test_all_additional_features_in_paid : unit -> unit

@@ -11,6 +11,7 @@ type feature =
 	| StorageLink_site_recovery    (** Enable use of StorageLink Site Recovery *)
 	| Web_self_service             (** Enable use of Web Self-Service *)
 	| Web_self_service_manager     (** Enable use of Web Self-Service Manager *)
+	| Hotfix_apply                 (** Enable GUI hotfix application *)
 
 (** The list of all known features. *)
 val all_features : feature list

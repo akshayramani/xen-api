@@ -19,7 +19,10 @@ let test_enterprise_xd_works () =
 
 let v6_suite = "v6_suite" >::: [
 	"test_all_free_features_in_free" >:: Edition.test_all_free_features_in_free ;
-	"test_all_features_in_paid" >:: Edition.test_all_features_in_paid ;
+	"test_all_additional_free_features_in_free" >::
+		Edition.test_all_additional_free_features_in_free;
+	"test_all_additional_features_in_paid" >::
+		Edition.test_all_additional_features_in_paid ;
 	"test_enterprise_xd_works" >:: test_enterprise_xd_works ;
 	] ;;
 

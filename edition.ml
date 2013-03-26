@@ -52,13 +52,13 @@ let free_features =
 let additional_free_features = [Lab; Stage; StorageLink_site_recovery;
 	StorageLink; Vswitch_controller]
 
-let paid_features = [Hotfix_apply]
+let additional_paid_features = [Hotfix_apply]
 
-let to_features = function
-	| Free -> free_features
-	| _ -> paid_features @ free_features
+let to_features _ = free_features
 
-let to_additional_features _ = additional_free_features
+let to_additional_features = function
+	| Free -> additional_free_features
+	| _ -> additional_free_features @ additional_paid_features
 
 let to_int = function
 	| XenDesktop -> 10
@@ -77,12 +77,18 @@ let test_all_free_features_in_free () =
 	let open OUnit in
 	List.(iter (fun f ->
 		"all free features in free" @? (mem f (to_features Free)))
-		free_features) ;
-	"Hotfix_apply not in free" @? List.(not (mem Hotfix_apply (to_features Free)))
+		free_features)
 
-let test_all_features_in_paid () =
+let test_all_additional_free_features_in_free () =
 	let open OUnit in
 	List.(iter (fun f ->
-		"all features in paid" @? (mem f (to_features Socket)))
-		(free_features @ paid_features)) ;
-	"Hotfix_apply in paid" @? List.(mem Hotfix_apply (to_features Socket))
+		"all additional free features in free" @? (mem f (to_additional_features Free)))
+		additional_free_features) ;
+	"Hotfix_apply not in free" @? List.(not (mem Hotfix_apply (to_additional_features Free)))
+
+let test_all_additional_features_in_paid () =
+	let open OUnit in
+	List.(iter (fun f ->
+		"all features in paid" @? (mem f (to_additional_features Socket)))
+		(additional_free_features @ additional_paid_features)) ;
+	"Hotfix_apply in paid" @? List.(mem Hotfix_apply (to_additional_features Socket))

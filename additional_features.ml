@@ -11,6 +11,7 @@ type feature =
 	| StorageLink_site_recovery
 	| Web_self_service
 	| Web_self_service_manager
+	| Hotfix_apply
 
 (* The names of these flags _must_ start with "restrict_" *)
 let keys_of_features =
@@ -22,6 +23,7 @@ let keys_of_features =
 		StorageLink_site_recovery, "restrict_storagelink_site_recovery";
 		Web_self_service, "restrict_web_selfservice";
 		Web_self_service_manager, "restrict_web_selfservice_manager";
+		Hotfix_apply, "restrict_hotfix_apply";
 	]
 
 let string_of_feature f =
