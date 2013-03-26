@@ -12,6 +12,15 @@ let dbv =
 		else dbv
 	with _ -> dbv
 
+(** After a grace license has been checked out, we will try again to get a real
+ *  license, after this period.
+ *)
+let grace_retry_period = 3600.         (* 1h *)
+
+(** Same as [grace_retry_period], but used when the FIST point to reduce the period
+ *  is active. *)
+let reduced_grace_retry_period = 300.  (* 5min *)
+
 (** Toggle between beta or GA licenses *)
 let beta = false
 

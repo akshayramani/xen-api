@@ -9,12 +9,6 @@ let xapirpc xml =
 	let open Xmlrpc_client in
 	XMLRPC_protocol.rpc ~srcstr:"v6" ~dststr:"xapi" ~transport:(Unix "/var/xapi/xapi") ~http:(xmlrpc ~version:"1.0" "/") xml
 
-let period =
-	if Xapi_fist.reduce_grace_retry_period () then
-		300.	(* 5min *)
-	else
-		3600.	(* 1h *)
-
 (* This function sends a new host.apply_edition request to xapi *)
 let reapply edition =
 	let now = (Unix.gettimeofday ()) in
@@ -44,7 +38,7 @@ let delay = Delay.make ()
  * Note that if the re-apply may cause a new re-apply thread to be started,
  * which briefly overlaps with the original thread (which dies after the
  * [reapply] call). *)
-let reapply_thread edition =
+let reapply_thread edition period () =
 	Mutex.execute m (fun () -> running := true);
 	debug "Will re-apply the license in %d seconds." (int_of_float period);
 	if Delay.wait delay period then begin
@@ -57,10 +51,10 @@ let reapply_thread edition =
 	end
 
 (* Start the retry thread. *)
-let start edition =
+let start edition period =
 	Mutex.execute m (fun () ->
 		if !running = false then
-			ignore (Thread.create reapply_thread edition)
+			ignore (Thread.create (reapply_thread edition period) ())
 	)
 
 (* Stop the retry thread, if it is running. *)

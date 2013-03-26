@@ -360,7 +360,14 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 					Unixext.unlink_safe Xapi_globs.upgrade_grace_file;
 					let name = E.to_marketing_name edition' in
 					if license = "grace" then begin
-						Reapply.start edition;
+						let grace_retry_period =
+							if Xapi_fist.reduce_grace_retry_period () then
+								V6globs.reduced_grace_retry_period
+							else
+								V6globs.grace_retry_period
+						in
+						Reapply.start edition grace_retry_period;
+
 						let expires =
 							if Xapi_fist.reduce_grace_period () then
 								now +. (15. *. 60.)
