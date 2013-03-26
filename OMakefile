@@ -50,7 +50,7 @@ OCAML_LINK_FLAGS += $(LPE_LIB)/libLicHelper.a $(LPE_LIB)/libMFLic.a $(LPE_LIB)/l
 
 # The "real" daemon
 
-FILES = lpe_functor lpe v6alert lpe_helpers v6globs additional_features edition grace_retry \
+FILES = lpe_functor lpe v6alert lpe_helpers v6globs additional_features edition reapply \
 	license license_file gpg realv6 v6d
 
 StaticCLibrary(lpe_stubs, lpe_stubs)
@@ -61,7 +61,7 @@ OCamlProgram($(V6D), $(FILES))
 # The mock daemon, for component testing
 
 MOCKFILES = lpe_functor lpe_helpers lpe_mock_stubs edition license license_file gpg v6globs \
-	grace_retry additional_features v6alert realv6 v6mockd lpe_test test_lpe_test
+	reapply additional_features v6alert realv6 v6mockd lpe_test test_lpe_test
 OCamlProgram($(V6MOCKD), $(MOCKFILES))
 
 # Test suite

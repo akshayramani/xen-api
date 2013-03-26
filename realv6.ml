@@ -295,7 +295,7 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 
 	let get_license edition current_license =
 		try
-			Grace_retry.cancel (); (* cancel any existing grace-retry timer *)
+			Reapply.cancel (); (* cancel any existing re-apply timer *)
 			let edition' = E.of_string edition in
 			if not (List.mem edition' supported_editions) then
 				raise (E.Undefined_edition edition);
@@ -360,7 +360,7 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 					Unixext.unlink_safe Xapi_globs.upgrade_grace_file;
 					let name = E.to_marketing_name edition' in
 					if license = "grace" then begin
-						Grace_retry.start edition;
+						Reapply.start edition;
 						let expires =
 							if Xapi_fist.reduce_grace_period () then
 								now +. (15. *. 60.)
