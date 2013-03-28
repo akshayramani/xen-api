@@ -367,6 +367,7 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 							default_license with
 							L.sku = edition;
 							L.sku_marketing_name = name;
+							L.sockets = sockets;
 							L.expiry = expires;
 							L.grace = "regular grace";
 						}
@@ -387,6 +388,7 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 							default_license with
 							L.sku = edition;
 							L.sku_marketing_name = name;
+							L.sockets = sockets;
 							L.expiry = expires
 						}
 					end
