@@ -31,14 +31,14 @@ let round_to_days d =
 	
 (* Obtain a date that lies 30 days in the future to set as grace expiry date *)
 let grace_expiry () =
-	if Xapi_fist.reduce_grace_period () then
+	if V6fist.reduce_grace_period () then
 		Unix.time () +. 15. *. 60. (* 15 minutes in the future *)
 	else
 		round_to_days (Unix.time () +. 30. *. 24. *. 60. *. 60.) (* 30 days in the future *)
 
 (* Obtain a date that lies 30 days in the future to set as upgrade grace expiry date *)
 let upgrade_grace_expiry () =
-	if Xapi_fist.reduce_upgrade_grace_period () then
+	if V6fist.reduce_upgrade_grace_period () then
 		Unix.time () +. 15. *. 60. (* 15 minutes in the future *)
 	else
 		round_to_days (Unix.time () +. 30. *. 24. *. 60. *. 60.) (* 30 days in the future *)

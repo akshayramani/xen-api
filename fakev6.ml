@@ -99,7 +99,7 @@ let apply_edition dbg edition additional =
 				(* set expiry date (check fist point) *)
 				let expires =
 					(* CA-33155: FIST point may only set an expiry date earlier than the actual one *)
-					begin match Xapi_fist.set_expiry_date () with
+					begin match V6fist.set_expiry_date () with
 						| None ->
 							(* define "never" as 01-01-2030 *)
 							let start_of_epoch = Unix.gmtime 0. in
