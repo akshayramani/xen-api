@@ -274,13 +274,17 @@ let read_grace_from_file () =
 let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun () ->
 	(* default is free edition *)
 	let default_license = L.default () in
-	let free_license = {default_license with L.grace="no"; L.expiry=never} in
 	let current_edition = List.assoc "current_edition" additional in
 	let startup = List.mem_assoc "startup" additional && List.assoc "startup" additional = "true" in
 	let sockets = if List.mem_assoc "sockets" additional
 		then List.assoc "sockets" additional else "" in
 	let sockets = try int_of_string sockets with _ ->
 		debug "Couldn't read number of sockets %s, defaulting to 1" sockets ; 1 in
+	let free_license = {
+		default_license with L.grace="no";
+		L.expiry=never;
+		L.sockets = sockets;
+	} in
 
 	let get_license edition current_license =
 		try
