@@ -47,7 +47,7 @@ let free_features =
 	VLAN :: QoS :: Shared_storage :: Pooling :: Marathon :: Connection ::
 	IntelliCache :: HA :: Email :: Performance :: DMC :: CPU_masking :: No_nag_dialog ::
 	No_platform_filter :: VMPR :: VIF_locking :: Storage_motion ::
-	Netapp :: Equalogic :: WLB :: RBAC :: Checkpoint :: GPU :: DR :: []
+	Netapp :: Equalogic :: RBAC :: Checkpoint :: GPU :: DR :: []
 
 let additional_free_features = [Lab; Stage; StorageLink_site_recovery;
 	StorageLink; Vswitch_controller]
