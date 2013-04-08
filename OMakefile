@@ -1,5 +1,4 @@
 V6D = v6d
-V6TESTD = v6testd
 V6MOCKD = v6mockd
 V6SUITE = v6suite
 
@@ -27,12 +26,6 @@ if $(NATIVE_ENABLED)
 	export
 
 LDFLAGS+=-static
-
-# The "fake" daemon
-
-TESTFILES = edition license license_file gpg lpe_helpers v6fist v6globs \
-	additional_features fakev6 v6testd
-OCamlProgram($(V6TESTD), $(TESTFILES))
 
 # LPE
 
@@ -70,19 +63,12 @@ BYTE_ENABLED=true
 UNITTESTFILES = v6fist v6globs lpe_functor lpe_helpers lpe_mock_stubs edition v6_test_suite
 OCamlProgram($(V6SUITE), $(UNITTESTFILES))
 
-.DEFAULT: $(V6D) $(V6TESTD) $(V6MOCKD) $(V6SUITE)
+.DEFAULT: $(V6D) $(V6MOCKD) $(V6SUITE)
 
 .PHONY: install
 install: $(V6D)
 	mkdir -p $(LIBEXEC)
 	$(IPROG) $(V6D) $(LIBEXEC)/v6d
-	mkdir -p $(DESTDIR)/etc/rc.d/init.d
-	$(IPROG) init.d-v6d $(DESTDIR)/etc/rc.d/init.d/v6d
-
-.PHONY: install-test
-install-test: $(V6TESTD)
-	mkdir -p $(LIBEXEC)
-	$(IPROG) $(V6TESTD) $(LIBEXEC)/v6d
 	mkdir -p $(DESTDIR)/etc/rc.d/init.d
 	$(IPROG) init.d-v6d $(DESTDIR)/etc/rc.d/init.d/v6d
 
@@ -98,4 +84,4 @@ install-mock: $(V6MOCKD)
 .PHONY: clean
 clean:
 	rm -f *.cmi *.cmx *.cmo *.a *.cma *.cmxa *.run *.opt *.annot *.o *.spot *.spit *.omc *.cmt *.cmti
-	rm -f $(V6D) $(V6TESTD) $(V6MOCKD)
+	rm -f $(V6D) $(V6MOCKD) $(V6SUITE)
