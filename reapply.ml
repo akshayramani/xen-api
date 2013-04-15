@@ -13,8 +13,8 @@ let xapirpc xml =
 let reapply edition =
 	let now = (Unix.gettimeofday ()) in
 	let host_uuid = Xapi_inventory.lookup Xapi_inventory._installation_uuid in
-	let session = Client.Session.login_with_password ~rpc:xapirpc ~uname:"" ~pwd:""
-		~version:Xapi_globs.api_version_string in
+	let session = Client.Session.login_with_password ~rpc:xapirpc ~uname:""
+		~pwd:"" ~version:Xapi_globs.api_version_string ~originator:"v6" in
 	Pervasiveext.finally
 		(fun () -> (* Retry checkout *)
 			let host = Client.Host.get_by_uuid xapirpc session host_uuid in
