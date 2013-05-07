@@ -409,7 +409,7 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 						L.expiry = expiry;
 						L.grace = "upgrade grace"}
 				end else if startup then begin
-					info "No %s license is available. License is set to 'expired' (no VMs can start)." current_edition;
+					info "No '%s' license is available. Returning expired license." current_edition;
 					(* expiry date 0 means 01-01-1970, so always expired *)
 					{current_license with L.expiry = 0.}
 				end else begin
@@ -420,23 +420,26 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 		with E.Undefined_edition e ->
 			raise (V6errors.Error (V6errors.invalid_edition, [edition]))
 	in
-	let new_edition, new_license =
+	let effective_edition, new_license =
 		(* If edition is blank, use Free as the default. This indicates startup after a fresh install,
 		 * or the application of a new license file. *)
 		let edition = if edition = "" then E.to_string E.Free else edition in
 		try
 			let current_license = L.of_assoc_list additional in
-			edition,
-			get_license edition current_license
+			let new_license = get_license edition current_license in
+			let effective_edition = if new_license.L.expiry = 0.
+				then E.to_string E.Free
+				else new_license.L.sku in
+			effective_edition, new_license
 		with L.Missing_license_param _ ->
 			(* No current license params: first boot -> give a default license.
 			 * If an activation key exists, this will used. *)
 			edition,
 			get_license edition default_license
 	in
-	new_edition, E.to_features (E.of_string new_edition),
+	new_license.L.sku, E.to_features (E.of_string new_license.L.sku),
 		(L.to_assoc_list new_license) @ V6globs.early_release @
-		(Additional_features.to_assoc_list (E.to_additional_features (E.of_string new_edition)))
+		(Additional_features.to_assoc_list (E.to_additional_features (E.of_string effective_edition)))
 	) () (* Debug.with_thread_associated *)
 
 let get_editions dbg =
