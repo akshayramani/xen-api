@@ -204,13 +204,7 @@ let initialise address port edition sockets =
 					let grace_expiry = Lpe.get_grace_expiry V6globs.v6product in
 					begin match grace_expiry with
 					| Some hours_left ->
-						let days_to_expire =
-							(* round up to avoid getting a 0-day license *)
-							if hours_left mod 24 = 0 then
-								hours_left / 24
-							else
-								hours_left / 24 + 1
-						in
+						let days_to_expire = hours_left / 24 in
 						debug "Got grace license for %d day(s)" days_to_expire;
 						state := Some {edition = edition;
 							licensed = "grace";
@@ -330,8 +324,12 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 
 				(* set expiry date *)
 				let now = Unix.time () in
-				let expires = match days_to_expire with
-					| Lpe.Days d -> now +. (float_of_int d *. 24. *. 3600.)
+				let expires =
+					let day = 24. *. 60. *. 60. in
+					(* Round to the nearest day, then bump day forward. *)
+					let next_midnight = (floor (now /. day)) *. day +. day in
+					match days_to_expire with
+						| Lpe.Days d -> next_midnight +. (float_of_int d *. day)
 					| Lpe.Permanent -> never
 				in
 
