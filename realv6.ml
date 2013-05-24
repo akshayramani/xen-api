@@ -337,27 +337,30 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 					end
 				in
 
-				let upgrade_grace = read_grace_from_file () > Unix.time () in
+				let upgrade_grace = read_grace_from_file () > now in
 				if license = "real" || license = "grace" then begin
 					info "Checked out %s %s license from license server." edition license;
 					(* delete upgrade-grace file, if it exists *)
 					Unixext.unlink_safe Xapi_globs.upgrade_grace_file;
 					let name = E.to_marketing_name edition' in
 					if license = "grace" then begin
-						let grace_retry_period =
-							if V6fist.reduce_grace_retry_period () then
-								V6globs.reduced_grace_retry_period
-							else
-								V6globs.grace_retry_period
-						in
-						Reapply.start edition grace_retry_period;
-
 						let expires =
 							if V6fist.reduce_grace_period () then
 								now +. (15. *. 60.)
 							else
 								expires
 						in
+						let grace_retry_period =
+							if V6fist.reduce_grace_retry_period () then
+								V6globs.reduced_grace_retry_period
+							else
+								V6globs.grace_retry_period
+						in
+						(* Reapply the license after the grace-retry period, or on expiry (plus 5 minutes to avoid
+						 * racing with the license server), whichever comes first. This ensures that the licensing
+						 * state in xapi is correct after the license expires. *)
+						let reapply_period = min grace_retry_period (expires -. now +. 300.) in
+						Reapply.start edition reapply_period;
 						{
 							default_license with
 							L.sku = edition;
@@ -377,8 +380,11 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 									debug "Failed to interpret re-apply period from FIST point: \"%s\"" period;
 									V6globs.reapply_period
 						in
+						(* Reapply the license after the reapply period, or on expiry (plus 5 minutes to avoid
+						 * racing with the license server), whichever comes first. This ensures that the licensing
+						 * state in xapi is correct after the license expires. *)
+						let reapply_period = min reapply_period (expires -. now +. 300.) in
 						Reapply.start edition reapply_period;
-
 						{
 							default_license with
 							L.sku = edition;
