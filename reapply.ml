@@ -13,21 +13,21 @@ let xapirpc xml =
 let reapply edition =
 	let now = (Unix.gettimeofday ()) in
 	let host_uuid = Xapi_inventory.lookup Xapi_inventory._installation_uuid in
-	let session = Client.Session.login_with_password ~rpc:xapirpc ~uname:""
+	let session_id = Client.Session.login_with_password ~rpc:xapirpc ~uname:""
 		~pwd:"" ~version:Xapi_globs.api_version_string ~originator:"v6" in
 	Pervasiveext.finally
 		(fun () -> (* Retry checkout *)
-			let host = Client.Host.get_by_uuid xapirpc session host_uuid in
-			Client.Host.apply_edition xapirpc session host edition;
+			let host = Client.Host.get_by_uuid xapirpc session_id host_uuid in
+			Client.Host.apply_edition ~rpc:xapirpc ~session_id ~host ~edition ~force:true;
 			(* Remove any newly generated grace alerts *)
-			let alerts = Client.Message.get_since xapirpc session (Date.of_float now) in
+			let alerts = Client.Message.get_since xapirpc session_id (Date.of_float now) in
 			let check_and_maybe_remove (ref, msg) =
 				if msg.API.message_name = "GRACE_LICENSE" then
-					Client.Message.destroy xapirpc session ref
+					Client.Message.destroy xapirpc session_id ref
 			in
 			List.iter check_and_maybe_remove alerts
 		)
-		(fun () -> Client.Session.logout xapirpc session)
+		(fun () -> Client.Session.logout xapirpc session_id)
 
 let running = ref false
 let m = Mutex.create ()

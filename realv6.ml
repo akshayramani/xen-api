@@ -269,7 +269,7 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 	(* default is free edition *)
 	let default_license = L.default () in
 	let current_edition = List.assoc "current_edition" additional in
-	let startup = List.mem_assoc "startup" additional && List.assoc "startup" additional = "true" in
+	let force = List.mem_assoc "force" additional && List.assoc "force" additional = "true" in
 	let sockets = if List.mem_assoc "sockets" additional
 		then List.assoc "sockets" additional else "" in
 	let sockets = try int_of_string sockets with _ ->
@@ -294,16 +294,9 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 			in
 			match edition' with
 			| E.Free ->
-				if startup
-				then begin
-					debug "Applying free edition" ;
-					free_license
-				end
-				else begin
-					debug "Releasing license and applying free edition" ;
-					ignore (shutdown ()) ;
-					free_license
-				end
+				debug "Applying free edition";
+				ignore (shutdown ());
+				free_license
 
 			| e ->
 				(* Try to get the a v6 license; if one has already been checked out,
@@ -408,8 +401,8 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 						L.sku_marketing_name = name;
 						L.expiry = expiry;
 						L.grace = "upgrade grace"}
-				end else if startup then begin
-					info "No '%s' license is available. Returning expired license." current_edition;
+				end else if force then begin
+					info "No '%s' license is available and \"force\" was set. Returning expired license." current_edition;
 					(* expiry date 0 means 01-01-1970, so always expired *)
 					{current_license with L.expiry = 0.}
 				end else begin
