@@ -38,7 +38,7 @@ let to_short_string = function
 
 let to_marketing_name = function
 	| Free -> "Citrix XenServer"
-	| Socket -> "Citrix XenServer Licensed"
+	| Socket -> "Citrix XenServer Per-Socket"
 	| XenDesktop -> "Citrix XenServer for XenDesktop"
 
 (* Editions to features *)
