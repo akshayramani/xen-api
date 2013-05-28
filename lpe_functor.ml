@@ -287,7 +287,6 @@ let get_license s identifier =
 	write_sa_date ();
 	(result, expiry)
 
-
 let get_license () =
 	match !state with
 	| Some {licensed = true} ->
@@ -295,34 +294,28 @@ let get_license () =
 		None, None
 	| Some s when s.started = true ->
 		let id = String.sub (Uuid.to_string (Uuid.make_uuid ())) 0 13 in
-		let rec do_get_licenses i acc =
-			if i <= 0
-			then Some acc
+		let rec do_get_licenses i (r', e') =
+			if i <= 0 then begin
+				debug "LPE checked out %d of %d required licenses" s.sockets s.sockets ;
+				s.licensed <- true ;
+				r', e'
+			end
 			else
 				let num = "_" ^ (string_of_int i) in
 				let r, e = get_license s (id ^ num) in
-				(* Bail out if we get Unreachable or Rejected *)
-				if r = Unreachable || r = Rejected
-				then None
-				else do_get_licenses (i-1) ((r,e) :: acc) in
-		(match do_get_licenses s.sockets [] with
-		| None ->
-			debug "Cannot check out enough licenses" ;
-			ignore (release_license ()) ;
-			None, None
-		| Some results ->
-			let result, expiry = List.fold_left
-				(fun (r1,e1) (r2,e2) ->
-					(min_of_result r1 r2, min_of_expiry_option e1 e2))
-				(Granted_real, Some Permanent) results in
-			(match !state with
-			| None -> None, None (* This really shouldn't happen... *)
-			| Some s ->
-				let num_profiles = List.length s.profile in
-				let licensed = num_profiles = s.sockets in
-				debug "LPE checked out %d of %d required licenses" num_profiles s.sockets ;
-				s.licensed <- licensed ;
-				Some result, expiry))
+				let result = min_of_result r r', min_of_expiry_option e e' in
+				if r = Unreachable || r = Rejected then begin
+					(* Bail out if we get Unreachable or Rejected *)
+					warn "LPE only checked out %d of %d required licenses" (s.sockets - i) s.sockets ;
+					ignore (release_license ());
+					(* s.license is already false at this point *)
+					result
+				end
+				else
+					do_get_licenses (i-1) result
+		in
+		let result, expiry = do_get_licenses s.sockets (Granted_real, Some Permanent) in
+		Some result, expiry
 	| _ ->
 		debug "Cannot get license: LPE is not running";
 		None, None
