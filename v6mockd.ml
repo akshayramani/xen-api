@@ -16,6 +16,6 @@ let handle_shutdown () =
 				 exit 0 ))
 
 let _ =
-	Debug.set_facility Syslog.Local5;
+	Debug.set_facility Syslog_transitional.Local5;
 	handle_shutdown ();
 	V6daemon.startup Lpe_test.init P.process
