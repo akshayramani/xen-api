@@ -11,7 +11,7 @@ License: LGPL+linking exception
 URL:  http://www.xen.org
 Source0: v6d-%{version}.tar.bz2
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-BuildRequires: ocaml, ocaml-findlib, ocaml-camlp4, ocaml-type-conv, ocaml-getopt, omake, xapi-client-devel, xapi-libs-devel
+BuildRequires: ocaml, ocaml-findlib, ocaml-camlp4, ocaml-type-conv, ocaml-getopt, omake, xapi-client-devel, ocaml-stdext-devel
 
 %description
 This package contains the Citrix XenServer licensing daemon, required by xapi at runtime.
