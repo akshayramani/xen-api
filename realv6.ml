@@ -3,8 +3,6 @@ module Make(E : module type of Edition)
 
 let _proprietary_code_marker = "Citrix proprietary code"
 
-let (|>) a f = f a
-
 module D=Debug.Debugger(struct let name="v6api" end)
 open D
 open Stringext
@@ -26,19 +24,6 @@ let never, _ =
 	Unix.mktime {start_of_epoch with Unix.tm_year = 130}
 
 let state = ref None
-
-let expiry_of_days days =
-	let now = Unix.time () in
-	let day = 24. *. 60. *. 60. in
-	(* Round to the nearest day, then bump day forward. *)
-	let next_midnight = (floor (now /. day)) *. day +. day in
-	match days with
-	| Lpe.Days d -> next_midnight +. (float_of_int d *. day)
-	| Lpe.Permanent -> never
-
-let expiry_of_state state = match !state with
-	| None -> never
-	| Some s -> s.days_to_expire |> expiry_of_days
 
 let xd_grace_thread = ref false
 let m = Mutex.create ()
@@ -280,33 +265,20 @@ let read_grace_from_file () =
 		float_of_string grace_expiry_str
 	with _ -> 0.
 
-let sockets_of_additional additional =
-	let sockets = if List.mem_assoc "sockets" additional
-		then List.assoc "sockets" additional else "" in
-	let sockets = try int_of_string sockets with _ ->
-		debug "Couldn't read number of sockets %s, defaulting to 1" sockets ; 1 in
-	sockets
-
-let features_of edition license =
-	(edition,
-	 E.to_features (E.of_string edition),
-	 (L.to_assoc_list license) @
-		 V6globs.early_release @
-		 (E.of_string edition |> E.to_additional_features |> Additional_features.to_assoc_list))
-
-let mk_free_license sockets =
-	{ (L.default ()) with
-		L.grace = "no";
-		L.expiry = never;
-		L.sockets = sockets }
-
 let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun () ->
 	(* default is free edition *)
 	let default_license = L.default () in
 	let current_edition = List.assoc "current_edition" additional in
 	let force = List.mem_assoc "force" additional && List.assoc "force" additional = "true" in
-	let sockets = sockets_of_additional additional in
-	let free_license = mk_free_license sockets in
+	let sockets = if List.mem_assoc "sockets" additional
+		then List.assoc "sockets" additional else "" in
+	let sockets = try int_of_string sockets with _ ->
+		debug "Couldn't read number of sockets %s, defaulting to 1" sockets ; 1 in
+	let free_license = {
+		default_license with L.grace="no";
+		L.expiry=never;
+		L.sockets = sockets;
+	} in
 
 	let get_license edition current_license =
 		try
@@ -345,7 +317,14 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 
 				(* set expiry date *)
 				let now = Unix.time () in
-				let expires = expiry_of_days days_to_expire in
+				let expires =
+					let day = 24. *. 60. *. 60. in
+					(* Round to the nearest day, then bump day forward. *)
+					let next_midnight = (floor (now /. day)) *. day +. day in
+					match days_to_expire with
+						| Lpe.Days d -> next_midnight +. (float_of_int d *. day)
+					| Lpe.Permanent -> never
+				in
 
 				(* check fist point *)
 				let expires =
@@ -457,8 +436,9 @@ let apply_edition dbg edition additional = Debug.with_thread_associated dbg (fun
 			edition,
 			get_license edition default_license
 	in
-
-	features_of new_license.L.sku new_license
+	new_license.L.sku, E.to_features (E.of_string new_license.L.sku),
+		(L.to_assoc_list new_license) @ V6globs.early_release @
+		(Additional_features.to_assoc_list (E.to_additional_features (E.of_string effective_edition)))
 	) () (* Debug.with_thread_associated *)
 
 let get_editions dbg =
@@ -473,26 +453,5 @@ let get_version dbg =
 	) ()
 
 let reopen_logs () = true
-
-let get_current_edition dbg additional =
-	Debug.with_thread_associated dbg (fun () ->
-
-		let license_of_edition edition additional =
-			if edition = "free"
-			then mk_free_license (sockets_of_additional additional)
-			else {
-				(L.of_assoc_list additional) with
-					L.sku = edition;
-					L.sku_marketing_name = E.(edition |> of_string |> to_marketing_name);
-					L.expiry = expiry_of_state state } in
-
-		let edition = match !state with
-			| None -> "free"
-			| Some s -> s.edition in
-
-		let license = license_of_edition edition additional in
-
-		features_of edition license
-	) ()
 
 end : V6rpc.V6api)
