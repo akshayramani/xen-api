@@ -699,15 +699,23 @@ let common_http_handlers = [
   ("connect_migrate", (Http_svr.FdIO Xapi_vm_migrate.handler));
 ]
 
-let server_init() =
+
+let set_stunnel_timeout () =
+  try
+    let timeout = int_of_string (Xapi_inventory.lookup Xapi_inventory._stunnel_idle_timeout) in
+    debug "Setting stunnel timeout to %d" timeout;
+    Stunnel.timeoutidle := Some timeout
+  with _ ->
+    debug "Using default stunnel timeout (usually 43200)"
+
   let listen_unix_socket () =
     (* Always listen on the Unix domain socket first *)
     Unixext.mkdir_safe (Filename.dirname Xapi_globs.unix_domain_socket) 0o700;
     Unixext.unlink_safe Xapi_globs.unix_domain_socket;
     let domain_sock = Xapi_http.bind (Unix.ADDR_UNIX(Xapi_globs.unix_domain_socket)) in
     ignore(Http_svr.start Xapi_http.server domain_sock);
-    in
 
+let server_init() =
   let print_server_starting_message() = debug "on_system_boot=%b pool_role=%s" !Xapi_globs.on_system_boot (Pool_role.string_of (Pool_role.get_role ())) in
 
   (* Record the initial value of Master_connection.connection_timeout and set it to 'never'. When we are a slave who
@@ -812,6 +820,7 @@ let server_init() =
     "Reading external global variables definition", [ Startup.NoExnRaising ], Xapi_globs.read_external_config;
     "XAPI SERVER STARTING", [], print_server_starting_message;
     "Parsing inventory file", [], Xapi_inventory.read_inventory;
+    "Setting stunnel timeout", [], set_stunnel_timeout;
     "Initialising local database", [], init_local_database;
 	"Loading DHCP leases", [], Xapi_udhcpd.init;
     "Reading pool secret", [], Helpers.get_pool_secret;
